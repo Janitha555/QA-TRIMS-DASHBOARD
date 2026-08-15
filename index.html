@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trims QA Enterprise Portal</title>
+    
+    <!-- Firebase SDKs (Realtime Database Included) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
+    <style>
+        :root {
+            --primary: #0f172a;
+            --primary-light: #1e293b;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --bg-main: #f8fafc;
+            --bg-card: #ffffff;
+            --border: #e2e8f0;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+        body { background-color: var(--bg-main); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; }
+
+        /* Auth View (Login Screen) */
+        #auth-screen { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 20px; }
+        .login-card { background: white; padding: 40px; border-radius: 16px; width: 100%; max-width: 400px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); text-align: center; }
+        .login-card h2 { margin-bottom: 8px; color: var(--primary); font-size: 22px; }
+        .login-card p { color: var(--text-muted); font-size: 13px; margin-bottom: 24px; }
+
+        /* Dashboard UI */
+        #app-screen { display: none; padding: 20px; flex: 1; }
+        .container { max-width: 1400px; margin: 0 auto; width: 100%; }
+
+        /* Header Navigation & User Profile Bar */
+        .navbar { display: flex; justify-content: space-between; align-items: center; background: var(--primary); color: white; padding: 15px 25px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .user-nav-profile { display: flex; align-items: center; gap: 12px; cursor: pointer; background: rgba(255,255,255,0.08); padding: 6px 12px; border-radius: 30px; transition: 0.2s; }
+        .user-nav-profile:hover { background: rgba(255,255,255,0.15); }
+        .avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent); }
+        .user-info-text { text-align: left; }
+        .user-name { font-size: 13px; font-weight: 600; display: block; }
+        .user-role { font-size: 10px; color: #94a3b8; text-transform: uppercase; }
+
+        .brand-banner { display: flex; justify-content: center; background: white; border: 1px solid var(--border); padding: 12px; border-radius: 12px; margin-bottom: 20px; }
+        .brand-logo { max-height: 50px; width: auto; object-fit: contain; }
+
+        /* Layout Grid */
+        .dashboard-grid { display: grid; grid-template-columns: 360px 1fr; gap: 20px; }
+        .card { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        
+        .form-group { margin-bottom: 14px; text-align: left; }
+        .form-group label { display: block; margin-bottom: 5px; font-size: 12px; font-weight: 600; color: var(--primary-light); }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; outline: none; }
+        
+        .btn { display: inline-flex; align-items: center; justify-content: center; padding: 10px 16px; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; gap: 6px; }
+        .btn-primary { background: var(--accent); color: white; width: 100%; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-secondary { background: var(--border); color: var(--text-main); }
+
+        /* Master Filter Bar */
+        .master-bar { background: #eff6ff; border: 1px solid #bfdbfe; padding: 12px 20px; border-radius: 10px; margin-bottom: 20px; display: flex; align-items: center; gap: 15px; }
+        
+        /* Table Styling */
+        .table-responsive { background: white; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
+        th { background: #f8fafc; color: var(--text-muted); padding: 12px 16px; border-bottom: 2px solid var(--border); font-size: 11px; text-transform: uppercase; }
+        td { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+        
+        .badge { padding: 4px 8px; font-size: 10px; font-weight: 700; border-radius: 4px; text-transform: uppercase; }
+        .badge-ok { background: #d1fae5; color: #065f46; }
+        .badge-hold { background: #fef3c7; color: #92400e; }
+        .badge-reject { background: #fee2e2; color: #991b1b; }
+
+        /* Modal overlay */
+        .modal-overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
+        .modal { background: white; padding: 25px; border-radius: 12px; width: 350px; text-align: center; }
+
+        @media print {
+            .no-print { display: none !important; }
+            #app-screen { display: block !important; padding: 0; }
+            .dashboard-grid { display: block !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- LOGIN SCREEN -->
+    <div id="auth-screen">
+        <div class="login-card">
+            <h2>Trims QA Portal</h2>
+            <p>Enter credentials provided by Administrator</p>
+            <form id="login-form" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" id="login-email" required placeholder="name@company.com">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="login-password" required placeholder="••••••••">
+                </div>
+                <button type="submit" class="btn btn-primary" style="margin-top: 10px;">Sign In Securely</button>
+            </form>
+            <div id="login-error" style="color: var(--danger); font-size: 12px; margin-top: 12px;"></div>
+        </div>
+    </div>
+
+    <!-- MAIN DASHBOARD -->
+    <div id="app-screen">
+        <div class="container">
+            
+            <div class="brand-banner">
+                <img class="brand-logo" src="92806_2.jpg" alt="STAR - A Komar company">
+            </div>
+
+            <!-- Top Header & Navigation -->
+            <div class="navbar">
+                <div style="font-size: 18px; font-weight: 600;">QA Operations Dashboard</div>
+                
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <div class="user-nav-profile" onclick="openProfileModal()">
+                        <img id="nav-avatar" class="avatar" src="https://via.placeholder.com/150" alt="Profile">
+                        <div class="user-info-text">
+                            <span id="nav-username" class="user-name">Loading...</span>
+                            <span id="nav-role" class="user-role">Operator</span>
+                        </div>
+                    </div>
+                    <button class="btn btn-danger no-print" onclick="handleLogout()" style="padding: 6px 12px; font-size: 11px;">Logout</button>
+                </div>
+            </div>
+
+            <!-- Master Admin View Selector -->
+            <div id="master-view-bar" class="master-bar no-print" style="display: none;">
+                <strong>👑 Master Dashboard Controls:</strong>
+                <label style="font-size: 13px;">Select Operator Log View:</label>
+                <select id="master-user-select" onchange="loadData()" style="padding: 6px; border-radius: 6px; border: 1px solid #93c5fd;">
+                    <option value="ALL">Show All System Users Data</option>
+                </select>
+            </div>
+
+            <div class="dashboard-grid">
+                <!-- Data Entry Form -->
+                <div class="card no-print">
+                    <h3 style="font-size: 14px; text-transform: uppercase; margin-bottom: 15px; border-left: 3px solid var(--accent); padding-left: 8px;">Log Inspection Record</h3>
+                    <form onsubmit="handleSaveRecord(event)">
+                        <div class="form-group">
+                            <label>PO Number</label>
+                            <input type="text" id="poNumber" required placeholder="PO-XXXX">
+                        </div>
+                        <div class="form-group">
+                            <label>Article Specs</label>
+                            <input type="text" id="articleDetails" required placeholder="Details">
+                        </div>
+                        <div class="form-group">
+                            <label>Color</label>
+                            <input type="text" id="color" required placeholder="Color">
+                        </div>
+                        <div class="form-group">
+                            <label>Total Batch Qty</label>
+                            <input type="number" id="totalQty" required placeholder="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Inspection Status</label>
+                            <select id="status">
+                                <option value="OK">OK</option>
+                                <option value="HOLD">HOLD</option>
+                                <option value="REJECT">REJECT</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Save Entry</button>
+                    </form>
+                </div>
+
+                <!-- Table Content -->
+                <div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 15px;" class="no-print">
+                        <input type="date" id="filterDate" onchange="loadData()" style="padding: 8px; border-radius: 6px; border: 1px solid var(--border);">
+                        <button class="btn btn-secondary" onclick="window.print()">Print PDF Report</button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Logged By</th>
+                                    <th>PO Number</th>
+                                    <th>Article Specs</th>
+                                    <th>Color</th>
+                                    <th>Qty</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PROFILE UPDATE MODAL -->
+    <div id="profile-modal" class="modal-overlay">
+        <div class="modal">
+            <h3 style="margin-bottom: 15px;">Update Profile</h3>
+            <div class="form-group">
+                <label>Display Name</label>
+                <input type="text" id="profile-display-name">
+            </div>
+            <div class="form-group">
+                <label>Profile Image URL</label>
+                <input type="text" id="profile-avatar-url" placeholder="https://image-link.com/pic.jpg">
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <button class="btn btn-primary" onclick="saveProfile()">Update Profile</button>
+                <button class="btn btn-secondary" onclick="closeProfileModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+    // ⚙️ FIREBASE CONFIGURATION (Paste your Realtime Database Config Keys here)
+    const firebaseConfig = {
+  apiKey: "AIzaSyAHU3Pf8uqhkw1WMgKIyYtFP4QhigIM1jg",
+  authDomain: "qa-trims-production.firebaseapp.com",
+  projectId: "qa-trims-production",
+  storageBucket: "qa-trims-production.firebasestorage.app",
+  messagingSenderId: "693190684035",
+  appId: "1:693190684035:web:5210a4134f06500a895ab6",
+  measurementId: "G-DP4EZG3PRJ"
+};
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const rtdb = firebase.database(); // Realtime Database Instance
+
+    let currentUser = null;
+    let currentUserRole = "operator";
+
+    document.getElementById('filterDate').value = new Date().toISOString().split('T')[0];
+
+    // Auth State Observer
+    auth.onAuthStateChanged(async (user) => {
+        if (user) {
+            currentUser = user;
+            
+            // Read User Profile from Realtime Database (`users/{uid}`)
+            const userRef = rtdb.ref('users/' + user.uid);
+            userRef.once('value', (snapshot) => {
+                const userData = snapshot.val();
+                if(userData) {
+                    currentUserRole = userData.role || 'operator';
+                    updateUserUI(userData.name || user.email, userData.photoURL);
+                } else {
+                    // Create Default Profile Node if missing
+                    const newProfile = {
+                        email: user.email,
+                        name: user.email.split('@')[0],
+                        role: 'operator',
+                        photoURL: 'https://via.placeholder.com/150'
+                    };
+                    userRef.set(newProfile);
+                    updateUserUI(newProfile.name, newProfile.photoURL);
+                }
+
+                document.getElementById('auth-screen').style.display = 'none';
+                document.getElementById('app-screen').style.display = 'block';
+
+                if(currentUserRole === 'admin') {
+                    setupMasterDashboard();
+                }
+
+                loadData();
+            });
+        } else {
+            document.getElementById('auth-screen').style.display = 'flex';
+            document.getElementById('app-screen').style.display = 'none';
+        }
+    });
+
+    // Handle Authentication Login
+    async function handleLogin(e) {
+        e.preventDefault();
+        const email = document.getElementById('login-email').value;
+        const pass = document.getElementById('login-password').value;
+        const errDiv = document.getElementById('login-error');
+        errDiv.innerText = '';
+
+        try {
+            await auth.signInWithEmailAndPassword(email, pass);
+        } catch (err) {
+            errDiv.innerText = "Access Denied: Invalid Credentials";
+        }
+    }
+
+    function handleLogout() {
+        auth.signOut();
+    }
+
+    function updateUserUI(name, photo) {
+        document.getElementById('nav-username').innerText = name;
+        document.getElementById('nav-role').innerText = currentUserRole;
+        if(photo) document.getElementById('nav-avatar').src = photo;
+    }
+
+    // Populate Master Dashboard dropdown for Admins
+    function setupMasterDashboard() {
+        document.getElementById('master-view-bar').style.display = 'flex';
+        const select = document.getElementById('master-user-select');
+        select.innerHTML = `<option value="ALL">Show All System Users Data</option>`;
+        
+        rtdb.ref('users').once('value', (snapshot) => {
+            snapshot.forEach((childSnap) => {
+                const uid = childSnap.key;
+                const data = childSnap.val();
+                select.innerHTML += `<option value="${uid}">${data.name || 'User'} (${data.email})</option>`;
+            });
+        });
+    }
+
+    // Load Data from Realtime Database
+    function loadData() {
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = '<tr><td colspan="6">Loading Data...</td></tr>';
+        
+        const selectedDate = document.getElementById('filterDate').value;
+        const logsRef = rtdb.ref('inspection_logs');
+
+        logsRef.orderByChild('date').equalTo(selectedDate).once('value', (snapshot) => {
+            tbody.innerHTML = '';
+            
+            if(!snapshot.exists()) {
+                tbody.innerHTML = '<tr><td colspan="6">No entries recorded for this date.</td></tr>';
+                return;
+            }
+
+            const masterUserFilter = document.getElementById('master-user-select') ? document.getElementById('master-user-select').value : 'ALL';
+
+            snapshot.forEach((childSnap) => {
+                const data = childSnap.val();
+
+                // Security / Isolation Filtering
+                if (currentUserRole !== 'admin' && data.userId !== currentUser.uid) {
+                    return; // Skip other users data for normal operator
+                }
+
+                if (currentUserRole === 'admin' && masterUserFilter !== 'ALL' && data.userId !== masterUserFilter) {
+                    return; // Admin filtering for specific operator
+                }
+
+                let badgeClass = data.status === 'OK' ? 'badge-ok' : (data.status === 'HOLD' ? 'badge-hold' : 'badge-reject');
+                
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${data.userName || 'Operator'}</strong></td>
+                        <td>${data.poNumber}</td>
+                        <td>${data.articleDetails}</td>
+                        <td>${data.color}</td>
+                        <td>${data.totalQty}</td>
+                        <td><span class="badge ${badgeClass}">${data.status}</span></td>
+                    </tr>
+                `;
+            });
+
+            if(tbody.innerHTML === '') {
+                tbody.innerHTML = '<tr><td colspan="6">No matching records found for this user/date.</td></tr>';
+            }
+        });
+    }
+
+    // Save Record to Realtime Database
+    async function handleSaveRecord(e) {
+        e.preventDefault();
+        const poNumber = document.getElementById('poNumber').value;
+        const articleDetails = document.getElementById('articleDetails').value;
+        const color = document.getElementById('color').value;
+        const totalQty = document.getElementById('totalQty').value;
+        const status = document.getElementById('status').value;
+        const date = document.getElementById('filterDate').value;
+
+        // Fetch User Display Name
+        const userSnap = await rtdb.ref('users/' + currentUser.uid).once('value');
+        const userName = userSnap.exists() ? userSnap.val().name : currentUser.email;
+
+        // Push new record to `inspection_logs` node
+        const newLogRef = rtdb.ref('inspection_logs').push();
+        await newLogRef.set({
+            userId: currentUser.uid,
+            userName: userName,
+            poNumber,
+            articleDetails,
+            color,
+            totalQty,
+            status,
+            date,
+            timestamp: firebase.database.ServerValue.TIMESTAMP
+        });
+
+        alert("Inspection Entry Saved Securely to Realtime Database!");
+        e.target.reset();
+        loadData();
+    }
+
+    // Profile Management
+    function openProfileModal() {
+        document.getElementById('profile-modal').style.display = 'flex';
+    }
+    function closeProfileModal() {
+        document.getElementById('profile-modal').style.display = 'none';
+    }
+
+    async function saveProfile() {
+        const newName = document.getElementById('profile-display-name').value;
+        const newAvatar = document.getElementById('profile-avatar-url').value;
+
+        if(!newName) return;
+
+        await rtdb.ref('users/' + currentUser.uid).update({
+            name: newName,
+            photoURL: newAvatar || 'https://via.placeholder.com/150'
+        });
+
+        updateUserUI(newName, newAvatar);
+        closeProfileModal();
+        loadData();
+    }
+</script>
+</body>
+</html>
