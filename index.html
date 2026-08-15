@@ -44,7 +44,7 @@
         .brand-logo { max-height: 50px; width: auto; }
 
         /* Dashboard Master Section */
-        .admin-panel { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+        .admin-panel { background: #eff6ff; border: 2px solid #2563eb; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .grid-main { display: grid; grid-template-columns: 360px 1fr; gap: 20px; }
         
@@ -124,7 +124,7 @@
                 </div>
             </div>
 
-            <!-- 👑 MASTER DASHBOARD ONLY PANEL -->
+            <!-- 👑 MASTER DASHBOARD PANEL -->
             <div id="master-admin-panel" class="admin-panel no-print" style="display: none;">
                 <h3 style="margin-bottom: 15px; color: var(--primary);">👑 Master Dashboard Control</h3>
                 
@@ -168,7 +168,7 @@
             </div>
 
             <div class="grid-main">
-                <!-- Data Entry Form (Available for All Roles) -->
+                <!-- Data Entry Form -->
                 <div class="card no-print">
                     <h3 style="font-size: 14px; text-transform: uppercase; margin-bottom: 15px; border-left: 3px solid var(--accent); padding-left: 8px;">Log Inspection Record</h3>
                     <form onsubmit="handleSaveRecord(event)">
@@ -233,11 +233,11 @@
     </div>
 
 <script>
-    // ⚙️ FIREBASE CONFIGURATION
+    // ⚙️ FIREBASE CONFIGURATION (Updated Database URL)
     const firebaseConfig = {
       apiKey: "AIzaSyAHU3Pf8uqhkw1WMgKIyYtFP4QhigIM1jg",
       authDomain: "qa-trims-production.firebaseapp.com",
-      databaseURL: "https://qa-trims-production-default-rtdb.firebaseio.com",
+      databaseURL: "https://rivo-music-fb7a1-default-rtdb.firebaseio.com", // 👈 JSON එකේ තිබූ නිවැරදි Database URL එක දැම්මා
       projectId: "qa-trims-production",
       storageBucket: "qa-trims-production.firebasestorage.app",
       messagingSenderId: "693190684035",
@@ -261,17 +261,19 @@
             document.getElementById('auth-screen').style.display = 'none';
             document.getElementById('app-screen').style.display = 'block';
 
-            // Check User Profile
+            // Realtime Database එකෙන් Profile එක පරීක්ෂා කිරීම
             rtdb.ref('users/' + user.uid).once('value').then((snapshot) => {
                 const userData = snapshot.val();
-                if (userData) {
-                    currentUserRole = userData.role || 'operator';
-                    updateUserUI(userData.name || user.email, userData.photoURL);
+                
+                if (userData && userData.role === 'admin') {
+                    currentUserRole = 'admin';
                 } else {
                     currentUserRole = 'operator';
-                    updateUserUI(user.email.split('@')[0], null);
                 }
 
+                updateUserUI(userData ? userData.name : user.email.split('@')[0], userData ? userData.photoURL : null);
+
+                // Admin View Control
                 if (currentUserRole === 'admin') {
                     document.getElementById('master-admin-panel').style.display = 'block';
                     loadSystemUsers();
@@ -280,7 +282,8 @@
                 }
 
                 loadData();
-            }).catch(() => {
+            }).catch((err) => {
+                console.error("User profile read error:", err);
                 updateUserUI(user.email.split('@')[0], null);
                 loadData();
             });
@@ -314,12 +317,12 @@
     }
 
     function updateUserUI(name, photo) {
-        document.getElementById('nav-username').innerText = name;
+        document.getElementById('nav-username').innerText = name || "User";
         document.getElementById('nav-role').innerText = currentUserRole;
         if(photo) document.getElementById('nav-avatar').src = photo;
     }
 
-    // Master Dashboard: Load System Users List & Dropdown
+    // Load System Users to Master Admin Panel
     function loadSystemUsers() {
         const select = document.getElementById('master-user-select');
         const userListUI = document.getElementById('users-list');
@@ -331,13 +334,13 @@
                 const uid = childSnap.key;
                 const data = childSnap.val();
                 
-                select.innerHTML += `<option value="${uid}">${data.name || 'User'} (${data.email})</option>`;
-                userListUI.innerHTML += `<li style="padding: 3px 0; border-bottom: 1px solid #f1f5f9;">👤 <strong>${data.name}</strong> - <span style="color:var(--text-muted);">${data.email}</span> <span class="badge badge-role">${data.role || 'operator'}</span></li>`;
+                select.innerHTML += `<option value="${uid}">${data.name || 'User'} (${data.email || 'No Email'})</option>`;
+                userListUI.innerHTML += `<li style="padding: 3px 0; border-bottom: 1px solid #f1f5f9;">👤 <strong>${data.name || 'User'}</strong> - <span class="badge badge-role">${data.role || 'operator'}</span></li>`;
             });
         });
     }
 
-    // Register New Normal User from Master Dashboard
+    // Register New Operator
     async function handleCreateUser(e) {
         e.preventDefault();
         const name = document.getElementById('new-user-name').value;
@@ -349,11 +352,9 @@
         const email = userInput.includes('@') ? userInput : `${userInput}@trims.com`;
 
         try {
-            // Secondary Secondary Firebase App instance to create user without logging out current Admin
             const secondaryApp = firebase.initializeApp(firebaseConfig, "SecondaryApp");
             const userCred = await secondaryApp.auth().createUserWithEmailAndPassword(email, pass);
             
-            // Save Profile in Database
             await rtdb.ref('users/' + userCred.user.uid).set({
                 name: name,
                 email: email,
@@ -361,18 +362,18 @@
                 createdAt: firebase.database.ServerValue.TIMESTAMP
             });
 
-            secondaryApp.delete(); // Delete secondary app instance
+            secondaryApp.delete();
             msg.style.color = 'green';
             msg.innerText = "Operator Account Created Successfully!";
             e.target.reset();
             loadSystemUsers();
         } catch (err) {
             msg.style.color = 'red';
-            msg.innerText = "Failed to Create: " + err.message;
+            msg.innerText = "Failed: " + err.message;
         }
     }
 
-    // Load PO Log Data Sheet
+    // Load PO Data Logs
     function loadData() {
         const tbody = document.getElementById('tableBody');
         tbody.innerHTML = '<tr><td colspan="7">Loading Records...</td></tr>';
@@ -393,18 +394,16 @@
             snapshot.forEach((childSnap) => {
                 const data = childSnap.val();
 
-                // Operator can only view their own logs
                 if (currentUserRole !== 'admin' && data.userId !== currentUser.uid) {
                     return;
                 }
 
-                // Master Admin Filtering
                 if (currentUserRole === 'admin' && masterUserFilter !== 'ALL' && data.userId !== masterUserFilter) {
                     return;
                 }
 
                 let badgeClass = data.status === 'OK' ? 'badge-ok' : (data.status === 'HOLD' ? 'badge-hold' : 'badge-reject');
-                let formattedTime = data.loggedAt ? new Date(data.loggedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'N/A';
+                let formattedTime = data.loggedAt ? new Date(data.loggedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '';
 
                 tbody.innerHTML += `
                     <tr>
@@ -425,7 +424,7 @@
         });
     }
 
-    // Save Inspection Record (Supports both Operator and Master Entry)
+    // Save Record
     async function handleSaveRecord(e) {
         e.preventDefault();
         const poNumber = document.getElementById('poNumber').value;
@@ -463,4 +462,3 @@
 </script>
 </body>
 </html>
-
