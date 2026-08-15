@@ -224,11 +224,11 @@
     </div>
 
 <script>
-    // ⚙️ FIREBASE CONFIGURATION (Added DatabaseURL)
+    // ⚙️ FIREBASE CONFIGURATION
     const firebaseConfig = {
       apiKey: "AIzaSyAHU3Pf8uqhkw1WMgKIyYtFP4QhigIM1jg",
       authDomain: "qa-trims-production.firebaseapp.com",
-      databaseURL: "https://qa-trims-production-default-rtdb.firebaseio.com", // 👈 මෙන්න මේ පේළිය එකතු කළා!
+      databaseURL: "https://qa-trims-production-default-rtdb.firebaseio.com",
       projectId: "qa-trims-production",
       storageBucket: "qa-trims-production.firebasestorage.app",
       messagingSenderId: "693190684035",
@@ -238,71 +238,72 @@
 
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
-    const rtdb = firebase.database(); // Realtime Database Instance
+    const rtdb = firebase.database();
 
     let currentUser = null;
     let currentUserRole = "operator";
 
     document.getElementById('filterDate').value = new Date().toISOString().split('T')[0];
 
-    // Auth State Observer
-    auth.onAuthStateChanged(async (user) => {
+    // Auth State Observer (Switches screens instantly)
+    auth.onAuthStateChanged((user) => {
         if (user) {
             currentUser = user;
             
-            // Read User Profile from Realtime Database (`users/{uid}`)
+            // Immediately show Dashboard
+            document.getElementById('auth-screen').style.display = 'none';
+            document.getElementById('app-screen').style.display = 'block';
+
+            // Fetch Profile Data safely
             const userRef = rtdb.ref('users/' + user.uid);
-            userRef.once('value', (snapshot) => {
+            userRef.once('value').then((snapshot) => {
                 const userData = snapshot.val();
-                if(userData) {
+                if (userData) {
                     currentUserRole = userData.role || 'operator';
                     updateUserUI(userData.name || user.email, userData.photoURL);
                 } else {
-                    // Create Default Profile Node if missing
                     const newProfile = {
                         email: user.email,
                         name: user.email.split('@')[0],
                         role: 'operator',
                         photoURL: 'https://via.placeholder.com/150'
                     };
-                    userRef.set(newProfile);
+                    userRef.set(newProfile).catch(e => console.log("Profile create warning:", e));
                     updateUserUI(newProfile.name, newProfile.photoURL);
                 }
 
-                document.getElementById('auth-screen').style.display = 'none';
-                document.getElementById('app-screen').style.display = 'block';
-
-                if(currentUserRole === 'admin') {
+                if (currentUserRole === 'admin') {
                     setupMasterDashboard();
                 }
 
                 loadData();
-            }, (error) => {
-                console.error("Database error:", error);
-                document.getElementById('auth-screen').style.display = 'none';
-                document.getElementById('app-screen').style.display = 'block';
+            }).catch((err) => {
+                console.warn("User fetch warning (showing fallback UI):", err);
+                updateUserUI(user.email.split('@')[0], null);
+                loadData();
             });
+
         } else {
             document.getElementById('auth-screen').style.display = 'flex';
             document.getElementById('app-screen').style.display = 'none';
         }
     });
 
-    // Handle Authentication Login (Supports Email and Username)
+    // Handle Authentication Login
     async function handleLogin(e) {
         e.preventDefault();
         const userInput = document.getElementById('login-email').value.trim();
         const pass = document.getElementById('login-password').value;
         const errDiv = document.getElementById('login-error');
-        errDiv.innerText = '';
+        errDiv.innerText = 'Logging in...';
 
-        // Username එකක් ලෙස ටයිප් කළහොත් Auto `@trims.com` එකතු වේ
         const constructedEmail = userInput.includes('@') ? userInput : `${userInput}@trims.com`;
 
         try {
             await auth.signInWithEmailAndPassword(constructedEmail, pass);
+            errDiv.innerText = '';
         } catch (err) {
-            errDiv.innerText = "Access Denied: Invalid Credentials";
+            errDiv.innerText = "Access Denied: Invalid Username or Password";
         }
     }
 
@@ -311,27 +312,25 @@
     }
 
     function updateUserUI(name, photo) {
-        document.getElementById('nav-username').innerText = name;
+        document.getElementById('nav-username').innerText = name || "User";
         document.getElementById('nav-role').innerText = currentUserRole;
         if(photo) document.getElementById('nav-avatar').src = photo;
     }
 
-    // Populate Master Dashboard dropdown for Admins
     function setupMasterDashboard() {
         document.getElementById('master-view-bar').style.display = 'flex';
         const select = document.getElementById('master-user-select');
         select.innerHTML = `<option value="ALL">Show All System Users Data</option>`;
         
-        rtdb.ref('users').once('value', (snapshot) => {
+        rtdb.ref('users').once('value').then((snapshot) => {
             snapshot.forEach((childSnap) => {
                 const uid = childSnap.key;
                 const data = childSnap.val();
                 select.innerHTML += `<option value="${uid}">${data.name || 'User'} (${data.email || 'No Email'})</option>`;
             });
-        });
+        }).catch(e => console.log("Master view load note:", e));
     }
 
-    // Load Data from Realtime Database
     function loadData() {
         const tbody = document.getElementById('tableBody');
         tbody.innerHTML = '<tr><td colspan="6">Loading Data...</td></tr>';
@@ -339,7 +338,7 @@
         const selectedDate = document.getElementById('filterDate').value;
         const logsRef = rtdb.ref('inspection_logs');
 
-        logsRef.orderByChild('date').equalTo(selectedDate).once('value', (snapshot) => {
+        logsRef.orderByChild('date').equalTo(selectedDate).once('value').then((snapshot) => {
             tbody.innerHTML = '';
             
             if(!snapshot.exists()) {
@@ -352,13 +351,12 @@
             snapshot.forEach((childSnap) => {
                 const data = childSnap.val();
 
-                // Security / Isolation Filtering
                 if (currentUserRole !== 'admin' && data.userId !== currentUser.uid) {
-                    return; // Skip other users data for normal operator
+                    return;
                 }
 
                 if (currentUserRole === 'admin' && masterUserFilter !== 'ALL' && data.userId !== masterUserFilter) {
-                    return; // Admin filtering for specific operator
+                    return;
                 }
 
                 let badgeClass = data.status === 'OK' ? 'badge-ok' : (data.status === 'HOLD' ? 'badge-hold' : 'badge-reject');
@@ -378,10 +376,12 @@
             if(tbody.innerHTML === '') {
                 tbody.innerHTML = '<tr><td colspan="6">No matching records found for this user/date.</td></tr>';
             }
+        }).catch((err) => {
+            console.error("Data load error:", err);
+            tbody.innerHTML = '<tr><td colspan="6">Permission Denied or Data Error. Check DB Rules.</td></tr>';
         });
     }
 
-    // Save Record to Realtime Database
     async function handleSaveRecord(e) {
         e.preventDefault();
         const poNumber = document.getElementById('poNumber').value;
@@ -391,11 +391,14 @@
         const status = document.getElementById('status').value;
         const date = document.getElementById('filterDate').value;
 
-        // Fetch User Display Name
-        const userSnap = await rtdb.ref('users/' + currentUser.uid).once('value');
-        const userName = userSnap.exists() ? userSnap.val().name : currentUser.email;
+        let userName = currentUser.email;
+        try {
+            const userSnap = await rtdb.ref('users/' + currentUser.uid).once('value');
+            if(userSnap.exists() && userSnap.val().name) {
+                userName = userSnap.val().name;
+            }
+        } catch(e) {}
 
-        // Push new record to `inspection_logs` node
         const newLogRef = rtdb.ref('inspection_logs').push();
         await newLogRef.set({
             userId: currentUser.uid,
@@ -409,12 +412,11 @@
             timestamp: firebase.database.ServerValue.TIMESTAMP
         });
 
-        alert("Inspection Entry Saved Securely to Realtime Database!");
+        alert("Inspection Entry Saved Securely!");
         e.target.reset();
         loadData();
     }
 
-    // Profile Management
     function openProfileModal() {
         document.getElementById('profile-modal').style.display = 'flex';
     }
