@@ -98,8 +98,8 @@
             <p>Enter credentials provided by Administrator</p>
             <form id="login-form" onsubmit="handleLogin(event)">
                 <div class="form-group">
-                    <label>Email Address</label>
-                    <input type="email" id="login-email" required placeholder="name@company.com">
+                    <label>Username or Email</label>
+                    <input type="text" id="login-email" required placeholder="username or email@company.com">
                 </div>
                 <div class="form-group">
                     <label>Password</label>
@@ -224,16 +224,17 @@
     </div>
 
 <script>
-    // ⚙️ FIREBASE CONFIGURATION (Paste your Realtime Database Config Keys here)
+    // ⚙️ FIREBASE CONFIGURATION (Added DatabaseURL)
     const firebaseConfig = {
-  apiKey: "AIzaSyAHU3Pf8uqhkw1WMgKIyYtFP4QhigIM1jg",
-  authDomain: "qa-trims-production.firebaseapp.com",
-  projectId: "qa-trims-production",
-  storageBucket: "qa-trims-production.firebasestorage.app",
-  messagingSenderId: "693190684035",
-  appId: "1:693190684035:web:5210a4134f06500a895ab6",
-  measurementId: "G-DP4EZG3PRJ"
-};
+      apiKey: "AIzaSyAHU3Pf8uqhkw1WMgKIyYtFP4QhigIM1jg",
+      authDomain: "qa-trims-production.firebaseapp.com",
+      databaseURL: "https://qa-trims-production-default-rtdb.firebaseio.com", // 👈 මෙන්න මේ පේළිය එකතු කළා!
+      projectId: "qa-trims-production",
+      storageBucket: "qa-trims-production.firebasestorage.app",
+      messagingSenderId: "693190684035",
+      appId: "1:693190684035:web:5210a4134f06500a895ab6",
+      measurementId: "G-DP4EZG3PRJ"
+    };
 
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
@@ -276,6 +277,10 @@
                 }
 
                 loadData();
+            }, (error) => {
+                console.error("Database error:", error);
+                document.getElementById('auth-screen').style.display = 'none';
+                document.getElementById('app-screen').style.display = 'block';
             });
         } else {
             document.getElementById('auth-screen').style.display = 'flex';
@@ -283,16 +288,19 @@
         }
     });
 
-    // Handle Authentication Login
+    // Handle Authentication Login (Supports Email and Username)
     async function handleLogin(e) {
         e.preventDefault();
-        const email = document.getElementById('login-email').value;
+        const userInput = document.getElementById('login-email').value.trim();
         const pass = document.getElementById('login-password').value;
         const errDiv = document.getElementById('login-error');
         errDiv.innerText = '';
 
+        // Username එකක් ලෙස ටයිප් කළහොත් Auto `@trims.com` එකතු වේ
+        const constructedEmail = userInput.includes('@') ? userInput : `${userInput}@trims.com`;
+
         try {
-            await auth.signInWithEmailAndPassword(email, pass);
+            await auth.signInWithEmailAndPassword(constructedEmail, pass);
         } catch (err) {
             errDiv.innerText = "Access Denied: Invalid Credentials";
         }
@@ -318,7 +326,7 @@
             snapshot.forEach((childSnap) => {
                 const uid = childSnap.key;
                 const data = childSnap.val();
-                select.innerHTML += `<option value="${uid}">${data.name || 'User'} (${data.email})</option>`;
+                select.innerHTML += `<option value="${uid}">${data.name || 'User'} (${data.email || 'No Email'})</option>`;
             });
         });
     }
@@ -432,3 +440,4 @@
 </script>
 </body>
 </html>
+
