@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trims QA Enterprise Portal</title>
     
-    <!-- Firebase SDKs (Realtime Database Included) -->
+    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
@@ -15,9 +15,7 @@
             --primary: #0f172a;
             --primary-light: #1e293b;
             --accent: #2563eb;
-            --accent-hover: #1d4ed8;
             --bg-main: #f8fafc;
-            --bg-card: #ffffff;
             --border: #e2e8f0;
             --text-main: #0f172a;
             --text-muted: #64748b;
@@ -29,63 +27,54 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
         body { background-color: var(--bg-main); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; }
 
-        /* Auth View (Login Screen) */
+        /* Login Screen */
         #auth-screen { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 20px; }
         .login-card { background: white; padding: 40px; border-radius: 16px; width: 100%; max-width: 400px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); text-align: center; }
         .login-card h2 { margin-bottom: 8px; color: var(--primary); font-size: 22px; }
-        .login-card p { color: var(--text-muted); font-size: 13px; margin-bottom: 24px; }
 
-        /* Dashboard UI */
+        /* App Layout */
         #app-screen { display: none; padding: 20px; flex: 1; }
         .container { max-width: 1400px; margin: 0 auto; width: 100%; }
 
-        /* Header Navigation & User Profile Bar */
-        .navbar { display: flex; justify-content: space-between; align-items: center; background: var(--primary); color: white; padding: 15px 25px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-        .user-nav-profile { display: flex; align-items: center; gap: 12px; cursor: pointer; background: rgba(255,255,255,0.08); padding: 6px 12px; border-radius: 30px; transition: 0.2s; }
-        .user-nav-profile:hover { background: rgba(255,255,255,0.15); }
+        .navbar { display: flex; justify-content: space-between; align-items: center; background: var(--primary); color: white; padding: 15px 25px; border-radius: 12px; margin-bottom: 20px; }
+        .user-nav-profile { display: flex; align-items: center; gap: 12px; }
         .avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent); }
-        .user-info-text { text-align: left; }
-        .user-name { font-size: 13px; font-weight: 600; display: block; }
-        .user-role { font-size: 10px; color: #94a3b8; text-transform: uppercase; }
 
         .brand-banner { display: flex; justify-content: center; background: white; border: 1px solid var(--border); padding: 12px; border-radius: 12px; margin-bottom: 20px; }
-        .brand-logo { max-height: 50px; width: auto; object-fit: contain; }
+        .brand-logo { max-height: 50px; width: auto; }
 
-        /* Layout Grid */
-        .dashboard-grid { display: grid; grid-template-columns: 360px 1fr; gap: 20px; }
+        /* Dashboard Master Section */
+        .admin-panel { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .grid-main { display: grid; grid-template-columns: 360px 1fr; gap: 20px; }
+        
         .card { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        
-        .form-group { margin-bottom: 14px; text-align: left; }
-        .form-group label { display: block; margin-bottom: 5px; font-size: 12px; font-weight: 600; color: var(--primary-light); }
-        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; outline: none; }
-        
-        .btn { display: inline-flex; align-items: center; justify-content: center; padding: 10px 16px; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; gap: 6px; }
+
+        .form-group { margin-bottom: 12px; text-align: left; }
+        .form-group label { display: block; margin-bottom: 4px; font-size: 12px; font-weight: 600; color: var(--primary-light); }
+        .form-group input, .form-group select { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; outline: none; }
+
+        .btn { display: inline-flex; align-items: center; justify-content: center; padding: 8px 14px; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; gap: 6px; }
         .btn-primary { background: var(--accent); color: white; width: 100%; }
+        .btn-success { background: var(--success); color: white; }
         .btn-danger { background: var(--danger); color: white; }
         .btn-secondary { background: var(--border); color: var(--text-main); }
 
-        /* Master Filter Bar */
-        .master-bar { background: #eff6ff; border: 1px solid #bfdbfe; padding: 12px 20px; border-radius: 10px; margin-bottom: 20px; display: flex; align-items: center; gap: 15px; }
-        
-        /* Table Styling */
+        /* Tables */
         .table-responsive { background: white; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
         table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
-        th { background: #f8fafc; color: var(--text-muted); padding: 12px 16px; border-bottom: 2px solid var(--border); font-size: 11px; text-transform: uppercase; }
-        td { padding: 12px 16px; border-bottom: 1px solid var(--border); }
-        
+        th { background: #f8fafc; color: var(--text-muted); padding: 10px 14px; border-bottom: 2px solid var(--border); font-size: 11px; text-transform: uppercase; }
+        td { padding: 10px 14px; border-bottom: 1px solid var(--border); }
+
         .badge { padding: 4px 8px; font-size: 10px; font-weight: 700; border-radius: 4px; text-transform: uppercase; }
         .badge-ok { background: #d1fae5; color: #065f46; }
         .badge-hold { background: #fef3c7; color: #92400e; }
         .badge-reject { background: #fee2e2; color: #991b1b; }
-
-        /* Modal overlay */
-        .modal-overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
-        .modal { background: white; padding: 25px; border-radius: 12px; width: 350px; text-align: center; }
+        .badge-role { background: #e0e7ff; color: #3730a3; }
 
         @media print {
             .no-print { display: none !important; }
             #app-screen { display: block !important; padding: 0; }
-            .dashboard-grid { display: block !important; }
         }
     </style>
 </head>
@@ -95,23 +84,23 @@
     <div id="auth-screen">
         <div class="login-card">
             <h2>Trims QA Portal</h2>
-            <p>Enter credentials provided by Administrator</p>
+            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Sign in to your account</p>
             <form id="login-form" onsubmit="handleLogin(event)">
                 <div class="form-group">
-                    <label>Username or Email</label>
-                    <input type="text" id="login-email" required placeholder="username or email@company.com">
+                    <label>Username / Email</label>
+                    <input type="text" id="login-email" required placeholder="username or email">
                 </div>
                 <div class="form-group">
                     <label>Password</label>
                     <input type="password" id="login-password" required placeholder="••••••••">
                 </div>
-                <button type="submit" class="btn btn-primary" style="margin-top: 10px;">Sign In Securely</button>
+                <button type="submit" class="btn btn-primary" style="margin-top: 10px;">Sign In</button>
             </form>
             <div id="login-error" style="color: var(--danger); font-size: 12px; margin-top: 12px;"></div>
         </div>
     </div>
 
-    <!-- MAIN DASHBOARD -->
+    <!-- MAIN APP SCREEN -->
     <div id="app-screen">
         <div class="container">
             
@@ -119,33 +108,67 @@
                 <img class="brand-logo" src="92806_2.jpg" alt="STAR - A Komar company">
             </div>
 
-            <!-- Top Header & Navigation -->
+            <!-- Navbar -->
             <div class="navbar">
                 <div style="font-size: 18px; font-weight: 600;">QA Operations Dashboard</div>
                 
                 <div style="display: flex; align-items: center; gap: 15px;">
-                    <div class="user-nav-profile" onclick="openProfileModal()">
+                    <div class="user-nav-profile">
                         <img id="nav-avatar" class="avatar" src="https://via.placeholder.com/150" alt="Profile">
-                        <div class="user-info-text">
-                            <span id="nav-username" class="user-name">Loading...</span>
-                            <span id="nav-role" class="user-role">Operator</span>
+                        <div>
+                            <span id="nav-username" style="font-size: 13px; font-weight: 600; display: block;">User</span>
+                            <span id="nav-role" style="font-size: 10px; color: #94a3b8; text-transform: uppercase;">Operator</span>
                         </div>
                     </div>
                     <button class="btn btn-danger no-print" onclick="handleLogout()" style="padding: 6px 12px; font-size: 11px;">Logout</button>
                 </div>
             </div>
 
-            <!-- Master Admin View Selector -->
-            <div id="master-view-bar" class="master-bar no-print" style="display: none;">
-                <strong>👑 Master Dashboard Controls:</strong>
-                <label style="font-size: 13px;">Select Operator Log View:</label>
-                <select id="master-user-select" onchange="loadData()" style="padding: 6px; border-radius: 6px; border: 1px solid #93c5fd;">
-                    <option value="ALL">Show All System Users Data</option>
-                </select>
+            <!-- 👑 MASTER DASHBOARD ONLY PANEL -->
+            <div id="master-admin-panel" class="admin-panel no-print" style="display: none;">
+                <h3 style="margin-bottom: 15px; color: var(--primary);">👑 Master Dashboard Control</h3>
+                
+                <div class="grid-2">
+                    <!-- Register New Operator -->
+                    <div class="card">
+                        <h4 style="font-size: 13px; margin-bottom: 10px;">Register New Operator</h4>
+                        <form onsubmit="handleCreateUser(event)">
+                            <div class="form-group">
+                                <label>Operator Name</label>
+                                <input type="text" id="new-user-name" required placeholder="Full Name">
+                            </div>
+                            <div class="form-group">
+                                <label>Username (or Email)</label>
+                                <input type="text" id="new-user-email" required placeholder="username">
+                            </div>
+                            <div class="form-group">
+                                <label>Password</label>
+                                <input type="password" id="new-user-pass" required placeholder="••••••••">
+                            </div>
+                            <button type="submit" class="btn btn-success">Register Operator</button>
+                        </form>
+                        <div id="reg-msg" style="font-size: 11px; margin-top: 5px;"></div>
+                    </div>
+
+                    <!-- User Filter & Management -->
+                    <div class="card">
+                        <h4 style="font-size: 13px; margin-bottom: 10px;">Filter PO Logs By Registered User</h4>
+                        <div class="form-group">
+                            <label>Select User to View Sheet:</label>
+                            <select id="master-user-select" onchange="loadData()">
+                                <option value="ALL">Show All Users Data</option>
+                            </select>
+                        </div>
+                        <h4 style="font-size: 12px; margin-top: 15px; margin-bottom: 5px;">Registered System Users List:</h4>
+                        <div style="max-height: 120px; overflow-y: auto; border: 1px solid var(--border); border-radius: 6px; padding: 5px;">
+                            <ul id="users-list" style="list-style: none; font-size: 12px;"></ul>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div class="dashboard-grid">
-                <!-- Data Entry Form -->
+            <div class="grid-main">
+                <!-- Data Entry Form (Available for All Roles) -->
                 <div class="card no-print">
                     <h3 style="font-size: 14px; text-transform: uppercase; margin-bottom: 15px; border-left: 3px solid var(--accent); padding-left: 8px;">Log Inspection Record</h3>
                     <form onsubmit="handleSaveRecord(event)">
@@ -177,10 +200,13 @@
                     </form>
                 </div>
 
-                <!-- Table Content -->
+                <!-- Inspection Logs Sheet Display -->
                 <div>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 15px;" class="no-print">
-                        <input type="date" id="filterDate" onchange="loadData()" style="padding: 8px; border-radius: 6px; border: 1px solid var(--border);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;" class="no-print">
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <label style="font-size: 12px; font-weight: 600;">Select Date:</label>
+                            <input type="date" id="filterDate" onchange="loadData()" style="padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border);">
+                        </div>
                         <button class="btn btn-secondary" onclick="window.print()">Print PDF Report</button>
                     </div>
 
@@ -188,7 +214,8 @@
                         <table>
                             <thead>
                                 <tr>
-                                    <th>Logged By</th>
+                                    <th>Logged By (User)</th>
+                                    <th>Date / Time</th>
                                     <th>PO Number</th>
                                     <th>Article Specs</th>
                                     <th>Color</th>
@@ -201,25 +228,7 @@
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
 
-    <!-- PROFILE UPDATE MODAL -->
-    <div id="profile-modal" class="modal-overlay">
-        <div class="modal">
-            <h3 style="margin-bottom: 15px;">Update Profile</h3>
-            <div class="form-group">
-                <label>Display Name</label>
-                <input type="text" id="profile-display-name">
-            </div>
-            <div class="form-group">
-                <label>Profile Image URL</label>
-                <input type="text" id="profile-avatar-url" placeholder="https://image-link.com/pic.jpg">
-            </div>
-            <div style="display: flex; gap: 10px; margin-top: 15px;">
-                <button class="btn btn-primary" onclick="saveProfile()">Update Profile</button>
-                <button class="btn btn-secondary" onclick="closeProfileModal()">Cancel</button>
-            </div>
         </div>
     </div>
 
@@ -245,40 +254,33 @@
 
     document.getElementById('filterDate').value = new Date().toISOString().split('T')[0];
 
-    // Auth State Observer (Switches screens instantly)
+    // Auth State Monitor
     auth.onAuthStateChanged((user) => {
         if (user) {
             currentUser = user;
-            
-            // Immediately show Dashboard
             document.getElementById('auth-screen').style.display = 'none';
             document.getElementById('app-screen').style.display = 'block';
 
-            // Fetch Profile Data safely
-            const userRef = rtdb.ref('users/' + user.uid);
-            userRef.once('value').then((snapshot) => {
+            // Check User Profile
+            rtdb.ref('users/' + user.uid).once('value').then((snapshot) => {
                 const userData = snapshot.val();
                 if (userData) {
                     currentUserRole = userData.role || 'operator';
                     updateUserUI(userData.name || user.email, userData.photoURL);
                 } else {
-                    const newProfile = {
-                        email: user.email,
-                        name: user.email.split('@')[0],
-                        role: 'operator',
-                        photoURL: 'https://via.placeholder.com/150'
-                    };
-                    userRef.set(newProfile).catch(e => console.log("Profile create warning:", e));
-                    updateUserUI(newProfile.name, newProfile.photoURL);
+                    currentUserRole = 'operator';
+                    updateUserUI(user.email.split('@')[0], null);
                 }
 
                 if (currentUserRole === 'admin') {
-                    setupMasterDashboard();
+                    document.getElementById('master-admin-panel').style.display = 'block';
+                    loadSystemUsers();
+                } else {
+                    document.getElementById('master-admin-panel').style.display = 'none';
                 }
 
                 loadData();
-            }).catch((err) => {
-                console.warn("User fetch warning (showing fallback UI):", err);
+            }).catch(() => {
                 updateUserUI(user.email.split('@')[0], null);
                 loadData();
             });
@@ -289,13 +291,13 @@
         }
     });
 
-    // Handle Authentication Login
+    // Login Handler
     async function handleLogin(e) {
         e.preventDefault();
         const userInput = document.getElementById('login-email').value.trim();
         const pass = document.getElementById('login-password').value;
         const errDiv = document.getElementById('login-error');
-        errDiv.innerText = 'Logging in...';
+        errDiv.innerText = 'Authenticating...';
 
         const constructedEmail = userInput.includes('@') ? userInput : `${userInput}@trims.com`;
 
@@ -303,7 +305,7 @@
             await auth.signInWithEmailAndPassword(constructedEmail, pass);
             errDiv.innerText = '';
         } catch (err) {
-            errDiv.innerText = "Access Denied: Invalid Username or Password";
+            errDiv.innerText = "Error: Invalid Credentials";
         }
     }
 
@@ -312,28 +314,68 @@
     }
 
     function updateUserUI(name, photo) {
-        document.getElementById('nav-username').innerText = name || "User";
+        document.getElementById('nav-username').innerText = name;
         document.getElementById('nav-role').innerText = currentUserRole;
         if(photo) document.getElementById('nav-avatar').src = photo;
     }
 
-    function setupMasterDashboard() {
-        document.getElementById('master-view-bar').style.display = 'flex';
+    // Master Dashboard: Load System Users List & Dropdown
+    function loadSystemUsers() {
         const select = document.getElementById('master-user-select');
-        select.innerHTML = `<option value="ALL">Show All System Users Data</option>`;
-        
+        const userListUI = document.getElementById('users-list');
+        select.innerHTML = `<option value="ALL">Show All Users Data</option>`;
+        userListUI.innerHTML = '';
+
         rtdb.ref('users').once('value').then((snapshot) => {
             snapshot.forEach((childSnap) => {
                 const uid = childSnap.key;
                 const data = childSnap.val();
-                select.innerHTML += `<option value="${uid}">${data.name || 'User'} (${data.email || 'No Email'})</option>`;
+                
+                select.innerHTML += `<option value="${uid}">${data.name || 'User'} (${data.email})</option>`;
+                userListUI.innerHTML += `<li style="padding: 3px 0; border-bottom: 1px solid #f1f5f9;">👤 <strong>${data.name}</strong> - <span style="color:var(--text-muted);">${data.email}</span> <span class="badge badge-role">${data.role || 'operator'}</span></li>`;
             });
-        }).catch(e => console.log("Master view load note:", e));
+        });
     }
 
+    // Register New Normal User from Master Dashboard
+    async function handleCreateUser(e) {
+        e.preventDefault();
+        const name = document.getElementById('new-user-name').value;
+        const userInput = document.getElementById('new-user-email').value.trim();
+        const pass = document.getElementById('new-user-pass').value;
+        const msg = document.getElementById('reg-msg');
+        msg.innerText = 'Registering User...';
+
+        const email = userInput.includes('@') ? userInput : `${userInput}@trims.com`;
+
+        try {
+            // Secondary Secondary Firebase App instance to create user without logging out current Admin
+            const secondaryApp = firebase.initializeApp(firebaseConfig, "SecondaryApp");
+            const userCred = await secondaryApp.auth().createUserWithEmailAndPassword(email, pass);
+            
+            // Save Profile in Database
+            await rtdb.ref('users/' + userCred.user.uid).set({
+                name: name,
+                email: email,
+                role: 'operator',
+                createdAt: firebase.database.ServerValue.TIMESTAMP
+            });
+
+            secondaryApp.delete(); // Delete secondary app instance
+            msg.style.color = 'green';
+            msg.innerText = "Operator Account Created Successfully!";
+            e.target.reset();
+            loadSystemUsers();
+        } catch (err) {
+            msg.style.color = 'red';
+            msg.innerText = "Failed to Create: " + err.message;
+        }
+    }
+
+    // Load PO Log Data Sheet
     function loadData() {
         const tbody = document.getElementById('tableBody');
-        tbody.innerHTML = '<tr><td colspan="6">Loading Data...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7">Loading Records...</td></tr>';
         
         const selectedDate = document.getElementById('filterDate').value;
         const logsRef = rtdb.ref('inspection_logs');
@@ -342,7 +384,7 @@
             tbody.innerHTML = '';
             
             if(!snapshot.exists()) {
-                tbody.innerHTML = '<tr><td colspan="6">No entries recorded for this date.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7">No entries logged for this date.</td></tr>';
                 return;
             }
 
@@ -351,20 +393,24 @@
             snapshot.forEach((childSnap) => {
                 const data = childSnap.val();
 
+                // Operator can only view their own logs
                 if (currentUserRole !== 'admin' && data.userId !== currentUser.uid) {
                     return;
                 }
 
+                // Master Admin Filtering
                 if (currentUserRole === 'admin' && masterUserFilter !== 'ALL' && data.userId !== masterUserFilter) {
                     return;
                 }
 
                 let badgeClass = data.status === 'OK' ? 'badge-ok' : (data.status === 'HOLD' ? 'badge-hold' : 'badge-reject');
-                
+                let formattedTime = data.loggedAt ? new Date(data.loggedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'N/A';
+
                 tbody.innerHTML += `
                     <tr>
-                        <td><strong>${data.userName || 'Operator'}</strong></td>
-                        <td>${data.poNumber}</td>
+                        <td><strong>${data.userName || 'Unknown'}</strong></td>
+                        <td>${data.date} <span style="font-size:10px; color:var(--text-muted);">${formattedTime}</span></td>
+                        <td><strong>${data.poNumber}</strong></td>
                         <td>${data.articleDetails}</td>
                         <td>${data.color}</td>
                         <td>${data.totalQty}</td>
@@ -374,14 +420,12 @@
             });
 
             if(tbody.innerHTML === '') {
-                tbody.innerHTML = '<tr><td colspan="6">No matching records found for this user/date.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7">No matching records found.</td></tr>';
             }
-        }).catch((err) => {
-            console.error("Data load error:", err);
-            tbody.innerHTML = '<tr><td colspan="6">Permission Denied or Data Error. Check DB Rules.</td></tr>';
         });
     }
 
+    // Save Inspection Record (Supports both Operator and Master Entry)
     async function handleSaveRecord(e) {
         e.preventDefault();
         const poNumber = document.getElementById('poNumber').value;
@@ -402,41 +446,18 @@
         const newLogRef = rtdb.ref('inspection_logs').push();
         await newLogRef.set({
             userId: currentUser.uid,
-            userName: userName,
+            userName: currentUserRole === 'admin' ? `${userName} (Admin)` : userName,
             poNumber,
             articleDetails,
             color,
             totalQty,
             status,
             date,
-            timestamp: firebase.database.ServerValue.TIMESTAMP
+            loggedAt: firebase.database.ServerValue.TIMESTAMP
         });
 
-        alert("Inspection Entry Saved Securely!");
+        alert("Inspection Entry Saved Successfully!");
         e.target.reset();
-        loadData();
-    }
-
-    function openProfileModal() {
-        document.getElementById('profile-modal').style.display = 'flex';
-    }
-    function closeProfileModal() {
-        document.getElementById('profile-modal').style.display = 'none';
-    }
-
-    async function saveProfile() {
-        const newName = document.getElementById('profile-display-name').value;
-        const newAvatar = document.getElementById('profile-avatar-url').value;
-
-        if(!newName) return;
-
-        await rtdb.ref('users/' + currentUser.uid).update({
-            name: newName,
-            photoURL: newAvatar || 'https://via.placeholder.com/150'
-        });
-
-        updateUserUI(newName, newAvatar);
-        closeProfileModal();
         loadData();
     }
 </script>
