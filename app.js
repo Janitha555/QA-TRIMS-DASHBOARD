@@ -2,7 +2,7 @@ let currentUser = null;
 let currentUserRole = "operator";
 
 // 🔴 ඔබේ GitHub Username සහ Repo Name මෙතැන වෙනස් කරන්න
-const DEFAULT_AVATAR = "https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/YOUR_REPO_NAME/main/profile.png";
+const DEFAULT_AVATAR = "https://raw.githubusercontent.com/Janitha555/QA-TRIMS-DASHBOARD/main/profile.png";
 
 // Default Date එක Today ලෙස සැකසීම
 document.getElementById('filterDate').value = new Date().toISOString().split('T')[0];
