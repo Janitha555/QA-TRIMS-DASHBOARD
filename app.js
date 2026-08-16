@@ -1,3 +1,6 @@
+// ==========================================
+// Global Variables & Configuration
+// ==========================================
 let currentUser = null;
 let currentUserRole = "operator";
 
@@ -9,7 +12,9 @@ if (document.getElementById('filterDate')) {
     document.getElementById('filterDate').value = new Date().toISOString().split('T')[0];
 }
 
+// ==========================================
 // Firebase Auth State Listener
+// ==========================================
 auth.onAuthStateChanged((user) => {
     if (user) {
         currentUser = user;
@@ -54,11 +59,32 @@ auth.onAuthStateChanged((user) => {
     }
 });
 
-// Helper Function for Element Display safely
+// ==========================================
+// Helper Functions
+// ==========================================
+
+// Safely set DOM element display
 function setElementDisplay(id, displayType) {
     const el = document.getElementById(id);
     if (el) el.style.display = displayType;
 }
+
+// Update User UI (Navbar details)
+function updateUserUI(name, photo) {
+    const navUsername = document.getElementById('nav-username');
+    const navRole = document.getElementById('nav-role');
+    const navAvatar = document.getElementById('nav-avatar');
+
+    if (navUsername) navUsername.innerText = name || "User";
+    if (navRole) navRole.innerText = currentUserRole.toUpperCase();
+
+    // Photo එකක් නැත්නම් GitHub profile.png එක පෙන්වයි
+    if (navAvatar) navAvatar.src = photo || DEFAULT_AVATAR;
+}
+
+// ==========================================
+// Authentication Handlers
+// ==========================================
 
 // Login Handler
 function handleLogin(e) {
@@ -85,79 +111,7 @@ function handleLogout() {
     auth.signOut();
 }
 
-// User UI updates (Navbar)
-function updateUserUI(name, photo) {
-    const navUsername = document.getElementById('nav-username');
-    const navRole = document.getElementById('nav-role');
-    const navAvatar = document.getElementById('nav-avatar');
-
-    if (navUsername) navUsername.innerText = name || "User";
-    if (navRole) navRole.innerText = currentUserRole.toUpperCase();
-
-    // Photo එකක් නැත්නම් GitHub profile.png එක පෙන්වයි
-    if (navAvatar) navAvatar.src = photo || DEFAULT_AVATAR;
-}
-
-// 📸 Image Upload & Base64 Compression Logic
-function handleImageUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    if (!file.type.startsWith('image/')) {
-        alert("❌ කරුණාකර වලංගු Image එකක් තෝරන්න!");
-        return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = function (e) {
-        const img = new Image();
-        img.src = e.target.result;
-
-        img.onload = function () {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-
-            const maxWidth = 300;
-            const maxHeight = 300;
-            let width = img.width;
-            let height = img.height;
-
-            if (width > height) {
-                if (width > maxWidth) {
-                    height *= maxWidth / width;
-                    width = maxWidth;
-                }
-            } else {
-                if (height > maxHeight) {
-                    width *= maxHeight / height;
-                    height = maxHeight;
-                }
-            }
-
-            canvas.width = width;
-            canvas.height = height;
-            ctx.drawImage(img, 0, 0, width, height);
-
-            const base64Image = canvas.toDataURL('image/jpeg', 0.7);
-
-            if (currentUser) {
-                rtdb.ref('users/' + currentUser.uid).update({
-                    photoURL: base64Image
-                }).then(() => {
-                    const navAvatar = document.getElementById('nav-avatar');
-                    if (navAvatar) navAvatar.src = base64Image;
-                    alert("✅ Profile Picture එක සාර්ථකව Update විය!");
-                }).catch((err) => {
-                    alert("❌ Save Error: " + err.message);
-                });
-            }
-        };
-    };
-
-    reader.readAsDataURL(file);
-}
-
-// Register New User Function (Admin)
+// Register New User Function (Admin only)
 async function handleCreateUser(e) {
     e.preventDefault();
 
@@ -221,6 +175,72 @@ function loadSystemUsers() {
     }).catch(err => console.error("Error loading system users:", err));
 }
 
+// ==========================================
+// Profile Image Handling & Compression
+// ==========================================
+
+function handleImageUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+        alert("❌ කරුණාකර වලංගු Image එකක් තෝරන්න!");
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        const img = new Image();
+        img.src = e.target.result;
+
+        img.onload = function () {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+
+            const maxWidth = 300;
+            const maxHeight = 300;
+            let width = img.width;
+            let height = img.height;
+
+            if (width > height) {
+                if (width > maxWidth) {
+                    height *= maxWidth / width;
+                    width = maxWidth;
+                }
+            } else {
+                if (height > maxHeight) {
+                    width *= maxHeight / height;
+                    height = maxHeight;
+                }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            ctx.drawImage(img, 0, 0, width, height);
+
+            const base64Image = canvas.toDataURL('image/jpeg', 0.7);
+
+            if (currentUser) {
+                rtdb.ref('users/' + currentUser.uid).update({
+                    photoURL: base64Image
+                }).then(() => {
+                    const navAvatar = document.getElementById('nav-avatar');
+                    if (navAvatar) navAvatar.src = base64Image;
+                    alert("✅ Profile Picture එක සාර්ථකව Update විය!");
+                }).catch((err) => {
+                    alert("❌ Save Error: " + err.message);
+                });
+            }
+        };
+    };
+
+    reader.readAsDataURL(file);
+}
+
+// ==========================================
+// Form Mechanics & Inspection Management
+// ==========================================
+
 // Dynamic Article/Color Row Add for 20% Inspection
 function addArticleColorRow() {
     const container = document.getElementById('article-color-rows');
@@ -254,7 +274,7 @@ function toggleCheckTypeFields() {
     }
 }
 
-// Save Entry (Fixed Async Logic)
+// Save Entry Handler
 async function handleSaveRecord(e) {
     e.preventDefault();
     if (!currentUser) {
@@ -368,7 +388,7 @@ async function handleSaveRecord(e) {
     loadData();
 }
 
-// Ownership Control
+// Ownership Control & Status Updates
 function updateStatus(key, newStatus, recordOwnerId) {
     if (currentUserRole !== 'admin' && currentUser.uid !== recordOwnerId) {
         alert("🔒 Access Denied: You can only view this record. Only the user who created it can edit it.");
@@ -387,7 +407,7 @@ function updateStatus(key, newStatus, recordOwnerId) {
     }
 }
 
-// Load Data Function
+// Load Data Function (Renders Tables)
 function loadData() {
     const tbody20 = document.getElementById('tableBody20');
     const tbody100 = document.getElementById('tableBody100');
@@ -415,7 +435,7 @@ function loadData() {
             const key = childSnap.key;
             const data = childSnap.val();
 
-            // Search Query Filter
+            // Search Query Filter Logic
             if (searchQuery === '') {
                 if (data.date !== selectedDate) return;
 
