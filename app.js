@@ -28,7 +28,7 @@ auth.onAuthStateChanged((user) => {
             }
 
             loadData();
-        }).catch((err) => {
+        }).catch(() => {
             if (user.email.includes('admin')) {
                 currentUserRole = 'admin';
                 document.getElementById('master-admin-panel').style.display = 'block';
@@ -84,72 +84,86 @@ function loadSystemUsers() {
     });
 }
 
+// Dynamic Article/Color Row Add for 20% Inspection
+function addArticleColorRow() {
+    const container = document.getElementById('article-color-rows');
+    const newRow = document.createElement('div');
+    newRow.className = 'article-row';
+    newRow.style.cssText = 'display: flex; gap: 8px; margin-bottom: 8px; align-items: center;';
+    newRow.innerHTML = `
+        <input type="text" class="item-article" placeholder="Article Specs" style="flex:2;" required>
+        <input type="text" class="item-color" placeholder="Color" style="flex:1.5;" required>
+        <input type="number" class="item-qty" placeholder="Qty" style="flex:1;" required>
+        <button type="button" onclick="this.parentElement.remove()" style="background:#ef4444; color:white; border:none; padding:6px 10px; border-radius:4px; cursor:pointer;">✕</button>
+    `;
+    container.appendChild(newRow);
+}
+
 // 100% / 20% Type Change Listener
 function toggleCheckTypeFields() {
     const type = document.getElementById('checkType').value;
     const po = document.getElementById('poNumber').value.trim();
     const hundredFields = document.getElementById('hundred-percent-fields');
+    const dynamicArticleContainer = document.getElementById('dynamic-article-container');
 
     if (type === '100%') {
         hundredFields.style.display = 'block';
-        if (po !== '') {
-            checkExistingPOQty(po);
-        }
+        dynamicArticleContainer.style.display = 'none';
+        if (po !== '') checkExistingPOQty(po);
     } else {
         hundredFields.style.display = 'none';
+        dynamicArticleContainer.style.display = 'block';
     }
 }
 
-// Check PO for 100% Inspection Logic (Lock Total Qty if already existing)
-async function checkExistingPOQty(poNumber) {
-    const totalQtyInput = document.getElementById('totalQty');
-    
-    const snapshot = await rtdb.ref('inspection_logs').orderByChild('poNumber').equalTo(poNumber).once('value');
-    
-    let existingTotal = null;
-    let totalInspected = 0;
-    let totalStored = 0;
-
-    snapshot.forEach(child => {
-        const d = child.val();
-        if (d.checkType === '100%') {
-            if (d.totalQty) existingTotal = d.totalQty;
-            totalInspected += Number(d.dailyInspectedQty || 0);
-            totalStored += Number(d.dailyStoresQty || 0);
-        }
-    });
-
-    if (existingTotal !== null) {
-        totalQtyInput.value = existingTotal;
-        totalQtyInput.readOnly = true;
-        totalQtyInput.style.backgroundColor = "#e2e8f0";
-        document.getElementById('po-calc-info').innerText = `⚠️ Total PO Qty Locked (${existingTotal}). Total Inspected: ${totalInspected}, Remaining: ${existingTotal - totalInspected}`;
-    } else {
-        totalQtyInput.readOnly = false;
-        totalQtyInput.style.backgroundColor = "#ffffff";
-        document.getElementById('po-calc-info').innerText = ``;
-    }
-}
-
-// Save Entry with Calculations
+// Save Entry (Supports Dynamic Multi Articles & Owner Info)
 async function handleSaveRecord(e) {
     e.preventDefault();
     const poNumber = document.getElementById('poNumber').value.trim();
-    const articleDetails = document.getElementById('articleDetails').value;
-    const color = document.getElementById('color').value;
     const checkType = document.getElementById('checkType').value;
     const status = document.getElementById('status').value;
     const date = document.getElementById('filterDate').value;
 
-    let totalQty = Number(document.getElementById('totalQty').value) || 0;
-    let dailyInspectedQty = Number(document.getElementById('dailyInspectedQty').value) || 0;
-    let dailyStoresQty = Number(document.getElementById('dailyStoresQty').value) || 0;
+    let userName = currentUser.email;
+    try {
+        const userSnap = await rtdb.ref('users/' + currentUser.uid).once('value');
+        if (userSnap.exists() && userSnap.val().name) userName = userSnap.val().name;
+    } catch (e) {}
 
-    // Check Previous History for 100% Math
-    let accumInspected = 0;
-    let accumStored = 0;
+    if (checkType === '20%') {
+        const articleInputs = document.querySelectorAll('.item-article');
+        const colorInputs = document.querySelectorAll('.item-color');
+        const qtyInputs = document.querySelectorAll('.item-qty');
 
-    if (checkType === '100%') {
+        for (let i = 0; i < articleInputs.length; i++) {
+            const articleDetails = articleInputs[i].value;
+            const color = colorInputs[i].value;
+            const totalQty = Number(qtyInputs[i].value) || 0;
+
+            const newLogRef = rtdb.ref('inspection_logs').push();
+            await newLogRef.set({
+                userId: currentUser.uid,
+                userName: currentUserRole === 'admin' ? `${userName} (Admin)` : userName,
+                poNumber,
+                articleDetails,
+                color,
+                checkType,
+                totalQty,
+                status,
+                date,
+                loggedAt: firebase.database.ServerValue.TIMESTAMP
+            });
+        }
+    } else {
+        let totalQty = Number(document.getElementById('totalQty').value) || 0;
+        let dailyInspectedQty = Number(document.getElementById('dailyInspectedQty').value) || 0;
+        let dailyStoresQty = Number(document.getElementById('dailyStoresQty').value) || 0;
+        const articleDetails = document.getElementById('singleArticleDetails').value;
+        const color = document.getElementById('singleColor').value;
+
+        let accumInspected = 0;
+        let accumStored = 0;
+
         const snap = await rtdb.ref('inspection_logs').orderByChild('poNumber').equalTo(poNumber).once('value');
         snap.forEach(child => {
             const d = child.val();
@@ -162,41 +176,47 @@ async function handleSaveRecord(e) {
 
         accumInspected += dailyInspectedQty;
         accumStored += dailyStoresQty;
+
+        const newLogRef = rtdb.ref('inspection_logs').push();
+        await newLogRef.set({
+            userId: currentUser.uid,
+            userName: currentUserRole === 'admin' ? `${userName} (Admin)` : userName,
+            poNumber,
+            articleDetails,
+            color,
+            checkType,
+            totalQty,
+            dailyInspectedQty,
+            dailyStoresQty,
+            accumInspected,
+            accumStored,
+            remainingQty: totalQty - accumInspected,
+            status,
+            date,
+            loggedAt: firebase.database.ServerValue.TIMESTAMP
+        });
     }
 
-    let userName = currentUser.email;
-    try {
-        const userSnap = await rtdb.ref('users/' + currentUser.uid).once('value');
-        if (userSnap.exists() && userSnap.val().name) userName = userSnap.val().name;
-    } catch (e) {}
-
-    const newLogRef = rtdb.ref('inspection_logs').push();
-    await newLogRef.set({
-        userId: currentUser.uid,
-        userName: currentUserRole === 'admin' ? `${userName} (Admin)` : userName,
-        poNumber,
-        articleDetails,
-        color,
-        checkType,
-        totalQty,
-        dailyInspectedQty,
-        dailyStoresQty,
-        accumInspected,
-        accumStored,
-        remainingQty: totalQty - accumInspected,
-        status,
-        date,
-        loggedAt: firebase.database.ServerValue.TIMESTAMP
-    });
-
-    alert("Record Saved Successfully!");
+    alert("Inspection Entry Saved Successfully!");
     e.target.reset();
+    document.getElementById('article-color-rows').innerHTML = `
+        <div class="article-row" style="display: flex; gap: 8px; margin-bottom: 8px;">
+            <input type="text" class="item-article" placeholder="Article Specs" style="flex:2;" required>
+            <input type="text" class="item-color" placeholder="Color" style="flex:1.5;" required>
+            <input type="number" class="item-qty" placeholder="Qty" style="flex:1;" required>
+        </div>
+    `;
     toggleCheckTypeFields();
     loadData();
 }
 
-// Update HOLD Status Logic (Allow Operator to change HOLD to OK/REJECT)
-function updateStatus(key, newStatus) {
+// Ownership Control: Only Owner/Admin can Change Status
+function updateStatus(key, newStatus, recordOwnerId) {
+    if (currentUserRole !== 'admin' && currentUser.uid !== recordOwnerId) {
+        alert("🔒 Access Denied: You can only view this record. Only the user who created it can edit it.");
+        return;
+    }
+
     if (confirm(`Are you sure you want to change status to ${newStatus}?`)) {
         rtdb.ref('inspection_logs/' + key).update({
             status: newStatus
@@ -207,50 +227,61 @@ function updateStatus(key, newStatus) {
     }
 }
 
-// Load Data to 2 Separate Tables (20% and 100%)
+// Load Team Data (Shows ALL Data for View, Search Bar, Restricts Edit to Owner Only)
 function loadData() {
     const tbody20 = document.getElementById('tableBody20');
     const tbody100 = document.getElementById('tableBody100');
+    const searchQuery = document.getElementById('searchPO').value.toLowerCase().trim();
     
     tbody20.innerHTML = '<tr><td colspan="6">Loading...</td></tr>';
-    tbody100.innerHTML = '<tr><td colspan="9">Loading...</td></tr>';
+    tbody100.innerHTML = '<tr><td colspan="10">Loading...</td></tr>';
     
     const selectedDate = document.getElementById('filterDate').value;
     document.getElementById('pdf-date-header').innerText = `Date: ${selectedDate}`;
 
-    rtdb.ref('inspection_logs').orderByChild('date').equalTo(selectedDate).once('value').then((snapshot) => {
+    rtdb.ref('inspection_logs').once('value').then((snapshot) => {
         tbody20.innerHTML = '';
         tbody100.innerHTML = '';
-        
+
         if (!snapshot.exists()) {
-            tbody20.innerHTML = '<tr><td colspan="6" style="text-align:center;">No 20% Inspection entries logged.</td></tr>';
-            tbody100.innerHTML = '<tr><td colspan="9" style="text-align:center;">No 100% Inspection entries logged.</td></tr>';
+            tbody20.innerHTML = '<tr><td colspan="6" style="text-align:center;">No entries found.</td></tr>';
+            tbody100.innerHTML = '<tr><td colspan="10" style="text-align:center;">No entries found.</td></tr>';
             return;
         }
-
-        const masterUserFilter = document.getElementById('master-user-select') ? document.getElementById('master-user-select').value : 'ALL';
 
         snapshot.forEach((childSnap) => {
             const key = childSnap.key;
             const data = childSnap.val();
 
-            if (currentUserRole !== 'admin' && data.userId !== currentUser.uid) return;
-            if (currentUserRole === 'admin' && masterUserFilter !== 'ALL' && data.userId !== masterUserFilter) return;
-
-            let badgeClass = data.status === 'OK' ? 'badge-ok' : (data.status === 'HOLD' ? 'badge-hold' : 'badge-reject');
-            
-            // Status Action for Operators (If HOLD, show dropdown/buttons)
-            let statusCell = `<span class="badge ${badgeClass}">${data.status}</span>`;
-            if (data.status === 'HOLD' && (currentUserRole === 'admin' || data.userId === currentUser.uid)) {
-                statusCell += `
-                    <div class="no-print" style="margin-top:4px;">
-                        <button onclick="updateStatus('${key}', 'OK')" style="background:#10b981; color:#fff; border:none; padding:2px 5px; font-size:10px; border-radius:3px; cursor:pointer;">OK</button>
-                        <button onclick="updateStatus('${key}', 'REJECT')" style="background:#ef4444; color:#fff; border:none; padding:2px 5px; font-size:10px; border-radius:3px; cursor:pointer;">REJECT</button>
-                    </div>
-                `;
+            // Live Search Filter (Matches PO or Article Specs)
+            if (searchQuery !== '') {
+                const poMatch = data.poNumber && data.poNumber.toLowerCase().includes(searchQuery);
+                const articleMatch = data.articleDetails && data.articleDetails.toLowerCase().includes(searchQuery);
+                if (!poMatch && !articleMatch) return;
+            } else {
+                if (data.date !== selectedDate) return;
             }
 
-            // Populate Tables based on Check Type
+            let badgeClass = data.status === 'OK' ? 'badge-ok' : (data.status === 'HOLD' ? 'badge-hold' : 'badge-reject');
+            const isOwner = (currentUser.uid === data.userId) || (currentUserRole === 'admin');
+
+            // Status Cell with Ownership Lock Indicator
+            let statusCell = `<span class="badge ${badgeClass}">${data.status}</span>`;
+            
+            if (data.status === 'HOLD') {
+                if (isOwner) {
+                    statusCell += `
+                        <div class="no-print" style="margin-top:4px;">
+                            <button onclick="updateStatus('${key}', 'OK', '${data.userId}')" style="background:#10b981; color:#fff; border:none; padding:2px 5px; font-size:10px; border-radius:3px; cursor:pointer;">OK</button>
+                            <button onclick="updateStatus('${key}', 'REJECT', '${data.userId}')" style="background:#ef4444; color:#fff; border:none; padding:2px 5px; font-size:10px; border-radius:3px; cursor:pointer;">REJECT</button>
+                        </div>
+                    `;
+                } else {
+                    statusCell += ` <small class="no-print" style="color:var(--text-muted); font-size:9px; display:block;">🔒 View Only</small>`;
+                }
+            }
+
+            // Populate Tables
             if (data.checkType === '100%') {
                 tbody100.innerHTML += `
                     <tr>
@@ -262,6 +293,7 @@ function loadData() {
                         <td style="color:#2563eb; font-weight:bold;">${data.accumInspected || 0}</td>
                         <td style="color:#ef4444; font-weight:bold;">${data.remainingQty < 0 ? 0 : data.remainingQty}</td>
                         <td>${data.dailyStoresQty || 0} (${data.accumStored || 0})</td>
+                        <td><small style="color:#64748b;">${data.userName || 'User'}</small></td>
                         <td>${statusCell}</td>
                     </tr>
                 `;
@@ -272,13 +304,14 @@ function loadData() {
                         <td>${data.articleDetails}</td>
                         <td>${data.color}</td>
                         <td>${data.totalQty || 0}</td>
+                        <td><small style="color:#64748b;">${data.userName || 'User'}</small></td>
                         <td>${statusCell}</td>
                     </tr>
                 `;
             }
         });
 
-        if (tbody20.innerHTML === '') tbody20.innerHTML = '<tr><td colspan="5" style="text-align:center;">No 20% records.</td></tr>';
-        if (tbody100.innerHTML === '') tbody100.innerHTML = '<tr><td colspan="9" style="text-align:center;">No 100% records.</td></tr>';
+        if (tbody20.innerHTML === '') tbody20.innerHTML = '<tr><td colspan="6" style="text-align:center;">No matching 20% records.</td></tr>';
+        if (tbody100.innerHTML === '') tbody100.innerHTML = '<tr><td colspan="10" style="text-align:center;">No matching 100% records.</td></tr>';
     });
 }
