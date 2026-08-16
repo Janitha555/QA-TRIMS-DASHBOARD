@@ -85,16 +85,16 @@ function loadSystemUsers() {
 }
 
 // Dynamic Article/Color Row Add for 20% Inspection
+// Dynamic Article/Color Row Add for 20% Inspection
 function addArticleColorRow() {
     const container = document.getElementById('article-color-rows');
     const newRow = document.createElement('div');
     newRow.className = 'article-row';
-    newRow.style.cssText = 'display: flex; gap: 8px; margin-bottom: 8px; align-items: center;';
     newRow.innerHTML = `
-        <input type="text" class="item-article" placeholder="Article Specs" style="flex:2;" required>
-        <input type="text" class="item-color" placeholder="Color" style="flex:1.5;" required>
-        <input type="number" class="item-qty" placeholder="Qty" style="flex:1;" required>
-        <button type="button" onclick="this.parentElement.remove()" style="background:#ef4444; color:white; border:none; padding:6px 10px; border-radius:4px; cursor:pointer;">✕</button>
+        <input type="text" class="item-article" placeholder="Article Specs" required>
+        <input type="text" class="item-color" placeholder="Color" required>
+        <input type="number" class="item-qty" placeholder="Qty" required>
+        <button type="button" class="btn-remove-row" onclick="this.parentElement.remove()">✕</button>
     `;
     container.appendChild(newRow);
 }
