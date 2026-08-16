@@ -5,7 +5,9 @@ let currentUserRole = "operator";
 const DEFAULT_AVATAR = "https://raw.githubusercontent.com/Janitha555/QA-TRIMS-DASHBOARD/main/profile.png";
 
 // Default Date එක Today ලෙස සැකසීම
-document.getElementById('filterDate').value = new Date().toISOString().split('T')[0];
+if (document.getElementById('filterDate')) {
+    document.getElementById('filterDate').value = new Date().toISOString().split('T')[0];
+}
 
 // Firebase Auth State Listener
 auth.onAuthStateChanged((user) => {
@@ -78,31 +80,66 @@ function updateUserUI(name, photo) {
     document.getElementById('nav-avatar').src = photo || DEFAULT_AVATAR;
 }
 
-// Profile Picture එක Link එකක් හරහා Update කිරීම
-async function setProfilePicture() {
-    const photoUrl = prompt("කරුණාකර ඔබේ Profile Picture එකෙහි Image Direct Link එක ඇතුලත් කරන්න (ImgBB, Direct Image URL, etc.):");
-    if (!photoUrl) return;
+// 📸 Image Upload & Base64 Compression Logic
+function handleImageUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
 
-    try {
-        const trimmedUrl = photoUrl.trim();
-
-        // Valid Link එකක්දැයි පරීක්ෂා කිරීම
-        if (!trimmedUrl.startsWith('http://') && !trimmedUrl.startsWith('https://')) {
-            alert("❌ නිවැරදි Image Link (URL) එකක් ඇතුලත් කරන්න!");
-            return;
-        }
-
-        // Database එකේ Save කිරීම
-        await rtdb.ref('users/' + currentUser.uid).update({
-            photoURL: trimmedUrl
-        });
-
-        document.getElementById('nav-avatar').src = trimmedUrl;
-        alert("✅ Profile Picture එක සාර්ථකව Update විය!");
-
-    } catch (error) {
-        alert("❌ Error: " + error.message);
+    // Image එකක් දැයි පරීක්ෂා කිරීම
+    if (!file.type.startsWith('image/')) {
+        alert("❌ කරුණාකර වලංගු Image එකක් තෝරන්න!");
+        return;
     }
+
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        const img = new Image();
+        img.src = e.target.result;
+
+        img.onload = function () {
+            // HTML Canvas එකක් භාවිතයෙන් Image එක Compress කිරීම
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+
+            const maxWidth = 300;
+            const maxHeight = 300;
+            let width = img.width;
+            let height = img.height;
+
+            if (width > height) {
+                if (width > maxWidth) {
+                    height *= maxWidth / width;
+                    width = maxWidth;
+                }
+            } else {
+                if (height > maxHeight) {
+                    width *= maxHeight / height;
+                    height = maxHeight;
+                }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            ctx.drawImage(img, 0, 0, width, height);
+
+            // Compress කළ Base64 Image String එක ලබා ගැනීම
+            const base64Image = canvas.toDataURL('image/jpeg', 0.7);
+
+            // Firebase Realtime Database එකට Save කිරීම
+            if (currentUser) {
+                rtdb.ref('users/' + currentUser.uid).update({
+                    photoURL: base64Image
+                }).then(() => {
+                    document.getElementById('nav-avatar').src = base64Image;
+                    alert("✅ Profile Picture එක සාර්ථකව Update විය!");
+                }).catch((err) => {
+                    alert("❌ Save Error: " + err.message);
+                });
+            }
+        };
+    };
+
+    reader.readAsDataURL(file);
 }
 
 // Register New User Function (Admin)
