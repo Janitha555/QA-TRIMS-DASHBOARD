@@ -274,7 +274,7 @@ function updateStatus(key, newStatus, recordOwnerId) {
     }
 }
 
-// Load Team Data (Shows ALL Data for View, Search Bar, Restricts Edit to Owner Only)
+// Load Data: Default එකේදී තමන්ගේ Data විතරක් පෙන්වන අතර, Search කළ විට පමණක් වෙනත් Users ලාගේ Data පෙන්වයි.
 function loadData() {
     const tbody20 = document.getElementById('tableBody20');
     const tbody100 = document.getElementById('tableBody100');
@@ -301,19 +301,26 @@ function loadData() {
             const key = childSnap.key;
             const data = childSnap.val();
 
-            // Live Search Filter (Matches PO or Article Specs)
+            // 🔒 Dynamic Data Filtering Logic:
             if (searchQuery !== '') {
+                // Search කර ඇති විට: ඕනෑම User කෙනෙකුගේ PO/Article එකක් Search Query එකට match වේ නම් පෙන්වයි
                 const poMatch = data.poNumber && data.poNumber.toLowerCase().includes(searchQuery);
                 const articleMatch = data.articleDetails && data.articleDetails.toLowerCase().includes(searchQuery);
                 if (!poMatch && !articleMatch) return;
             } else {
+                // Search කර නැති විට: තෝරාගත් දිනයට සහ තමන්ගේ User ID එකට අදාළ Records පමණක් පෙන්වයි
                 if (data.date !== selectedDate) return;
+                
+                // Admin ට හැර අන් අයට Default View එකේදී පෙනෙන්නේ තමන්ගේ Data පමණි
+                if (currentUserRole !== 'admin' && data.userId !== currentUser.uid) {
+                    return; 
+                }
             }
 
             let badgeClass = data.status === 'OK' ? 'badge-ok' : (data.status === 'HOLD' ? 'badge-hold' : 'badge-reject');
             const isOwner = (currentUser.uid === data.userId) || (currentUserRole === 'admin');
 
-            // Status Cell with Ownership Lock Indicator
+            // Status Cell setup with Edit Restrictions
             let statusCell = `<span class="badge ${badgeClass}">${data.status}</span>`;
             
             if (data.status === 'HOLD') {
@@ -329,7 +336,7 @@ function loadData() {
                 }
             }
 
-            // Populate Tables
+            // Tables එකට Data ඇතුළත් කිරීම
             if (data.checkType === '100%') {
                 tbody100.innerHTML += `
                     <tr>
@@ -359,7 +366,7 @@ function loadData() {
             }
         });
 
-        if (tbody20.innerHTML === '') tbody20.innerHTML = '<tr><td colspan="6" style="text-align:center;">No matching 20% records.</td></tr>';
-        if (tbody100.innerHTML === '') tbody100.innerHTML = '<tr><td colspan="10" style="text-align:center;">No matching 100% records.</td></tr>';
+        if (tbody20.innerHTML === '') tbody20.innerHTML = '<tr><td colspan="6" style="text-align:center;">No 20% records found.</td></tr>';
+        if (tbody100.innerHTML === '') tbody100.innerHTML = '<tr><td colspan="10" style="text-align:center;">No 100% records found.</td></tr>';
     });
 }
