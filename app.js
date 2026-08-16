@@ -13,46 +13,52 @@ if (document.getElementById('filterDate')) {
 auth.onAuthStateChanged((user) => {
     if (user) {
         currentUser = user;
-        document.getElementById('auth-screen').style.display = 'none';
-        document.getElementById('app-screen').style.display = 'block';
+        setElementDisplay('auth-screen', 'none');
+        setElementDisplay('app-screen', 'block');
 
         rtdb.ref('users/' + user.uid).once('value').then((snapshot) => {
             const userData = snapshot.val();
 
-            if ((userData && userData.role === 'admin') || user.email.includes('admin')) {
+            if ((userData && userData.role === 'admin') || (user.email && user.email.includes('admin'))) {
                 currentUserRole = 'admin';
             } else {
                 currentUserRole = 'operator';
             }
 
-            updateUserUI(userData ? userData.name : user.email.split('@')[0], userData ? userData.photoURL : null);
+            updateUserUI(userData ? userData.name : (user.email ? user.email.split('@')[0] : 'User'), userData ? userData.photoURL : null);
 
             if (currentUserRole === 'admin') {
-                document.getElementById('master-admin-panel').style.display = 'block';
+                setElementDisplay('master-admin-panel', 'block');
                 loadSystemUsers();
             } else {
-                document.getElementById('master-admin-panel').style.display = 'none';
+                setElementDisplay('master-admin-panel', 'none');
             }
 
             loadData();
         }).catch((err) => {
             console.error("Auth Data Load Error:", err);
-            if (user.email.includes('admin')) {
+            if (user.email && user.email.includes('admin')) {
                 currentUserRole = 'admin';
-                document.getElementById('master-admin-panel').style.display = 'block';
+                setElementDisplay('master-admin-panel', 'block');
                 loadSystemUsers();
             }
-            updateUserUI(user.email.split('@')[0], null);
+            updateUserUI(user.email ? user.email.split('@')[0] : 'User', null);
             loadData();
         });
 
     } else {
         currentUser = null;
         currentUserRole = "operator";
-        document.getElementById('auth-screen').style.display = 'flex';
-        document.getElementById('app-screen').style.display = 'none';
+        setElementDisplay('auth-screen', 'flex');
+        setElementDisplay('app-screen', 'none');
     }
 });
+
+// Helper Function for Element Display safely
+function setElementDisplay(id, displayType) {
+    const el = document.getElementById(id);
+    if (el) el.style.display = displayType;
+}
 
 // Login Handler
 function handleLogin(e) {
@@ -60,15 +66,17 @@ function handleLogin(e) {
     const userInput = document.getElementById('login-email').value.trim();
     const pass = document.getElementById('login-password').value;
     const errDiv = document.getElementById('login-error');
-    errDiv.innerText = 'Authenticating...';
+    if (errDiv) errDiv.innerText = 'Authenticating...';
 
     const constructedEmail = userInput.includes('@') ? userInput : `${userInput}@trims.com`;
 
     auth.signInWithEmailAndPassword(constructedEmail, pass)
-        .then(() => errDiv.innerText = '')
+        .then(() => {
+            if (errDiv) errDiv.innerText = '';
+        })
         .catch((err) => {
             console.error("Login Error:", err);
-            errDiv.innerText = "Error: Invalid Credentials";
+            if (errDiv) errDiv.innerText = "Error: Invalid Credentials";
         });
 }
 
@@ -95,7 +103,6 @@ function handleImageUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
 
-    // Image එකක් දැයි පරීක්ෂා කිරීම
     if (!file.type.startsWith('image/')) {
         alert("❌ කරුණාකර වලංගු Image එකක් තෝරන්න!");
         return;
@@ -107,7 +114,6 @@ function handleImageUpload(event) {
         img.src = e.target.result;
 
         img.onload = function () {
-            // HTML Canvas එකක් භාවිතයෙන් Image එක Compress කිරීම
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
 
@@ -132,10 +138,8 @@ function handleImageUpload(event) {
             canvas.height = height;
             ctx.drawImage(img, 0, 0, width, height);
 
-            // Compress කළ Base64 Image String එක ලබා ගැනීම
             const base64Image = canvas.toDataURL('image/jpeg', 0.7);
 
-            // Firebase Realtime Database එකට Save කිරීම
             if (currentUser) {
                 rtdb.ref('users/' + currentUser.uid).update({
                     photoURL: base64Image
@@ -201,16 +205,19 @@ function loadSystemUsers() {
     const select = document.getElementById('master-user-select');
     const userListUI = document.getElementById('users-list');
 
-    if (select) select.innerHTML = `<option value="ALL">Show All Users Data</option>`;
-    if (userListUI) userListUI.innerHTML = '';
+    let selectHTML = `<option value="ALL">Show All Users Data</option>`;
+    let listHTML = '';
 
     rtdb.ref('users').once('value').then((snapshot) => {
         snapshot.forEach((childSnap) => {
             const uid = childSnap.key;
             const data = childSnap.val();
-            if (select) select.innerHTML += `<option value="${uid}">${data.name || 'User'} (${data.email || 'No Email'})</option>`;
-            if (userListUI) userListUI.innerHTML += `<li style="padding: 4px 0; border-bottom: 1px solid #f1f5f9;">👤 <strong>${data.name || 'User'}</strong> - <span class="badge badge-role">${data.role || 'operator'}</span></li>`;
+            selectHTML += `<option value="${uid}">${data.name || 'User'} (${data.email || 'No Email'})</option>`;
+            listHTML += `<li style="padding: 4px 0; border-bottom: 1px solid #f1f5f9;">👤 <strong>${data.name || 'User'}</strong> - <span class="badge badge-role">${data.role || 'operator'}</span></li>`;
         });
+
+        if (select) select.innerHTML = selectHTML;
+        if (userListUI) userListUI.innerHTML = listHTML;
     }).catch(err => console.error("Error loading system users:", err));
 }
 
@@ -232,23 +239,22 @@ function addArticleColorRow() {
 
 // 100% / 20% Type Change Listener
 function toggleCheckTypeFields() {
-    const type = document.getElementById('checkType').value;
+    const checkTypeElem = document.getElementById('checkType');
+    if (!checkTypeElem) return;
+
+    const type = checkTypeElem.value;
     const poElem = document.getElementById('poNumber');
     const po = poElem ? poElem.value.trim() : '';
-    const hundredFields = document.getElementById('hundred-percent-fields');
-    const dynamicArticleContainer = document.getElementById('dynamic-article-container');
 
-    if (type === '100%') {
-        if (hundredFields) hundredFields.style.display = 'block';
-        if (dynamicArticleContainer) dynamicArticleContainer.style.display = 'none';
-        if (po !== '' && typeof checkExistingPOQty === "function") checkExistingPOQty(po);
-    } else {
-        if (hundredFields) hundredFields.style.display = 'none';
-        if (dynamicArticleContainer) dynamicArticleContainer.style.display = 'block';
+    setElementDisplay('hundred-percent-fields', type === '100%' ? 'block' : 'none');
+    setElementDisplay('dynamic-article-container', type === '20%' ? 'block' : 'none');
+
+    if (type === '100%' && po !== '' && typeof checkExistingPOQty === "function") {
+        checkExistingPOQty(po);
     }
 }
 
-// Save Entry
+// Save Entry (Fixed Async Logic)
 async function handleSaveRecord(e) {
     e.preventDefault();
     if (!currentUser) {
@@ -256,12 +262,12 @@ async function handleSaveRecord(e) {
         return;
     }
 
-    const poNumber = document.getElementById('poNumber').value.trim();
-    const checkType = document.getElementById('checkType').value;
-    const status = document.getElementById('status').value;
-    const date = document.getElementById('filterDate').value;
+    const poNumber = document.getElementById('poNumber') ? document.getElementById('poNumber').value.trim() : '';
+    const checkType = document.getElementById('checkType') ? document.getElementById('checkType').value : '20%';
+    const status = document.getElementById('status') ? document.getElementById('status').value : 'OK';
+    const date = document.getElementById('filterDate') ? document.getElementById('filterDate').value : '';
 
-    let userName = currentUser.email;
+    let userName = currentUser.email || 'User';
     try {
         const userSnap = await rtdb.ref('users/' + currentUser.uid).once('value');
         if (userSnap.exists() && userSnap.val().name) userName = userSnap.val().name;
@@ -269,10 +275,14 @@ async function handleSaveRecord(e) {
         console.warn("User fetch error:", e);
     }
 
+    const formattedUserName = currentUserRole === 'admin' ? `${userName} (Admin)` : userName;
+
     if (checkType === '20%') {
         const articleInputs = document.querySelectorAll('.item-article');
         const colorInputs = document.querySelectorAll('.item-color');
         const qtyInputs = document.querySelectorAll('.item-qty');
+
+        const savePromises = [];
 
         for (let i = 0; i < articleInputs.length; i++) {
             const articleDetails = articleInputs[i].value.trim();
@@ -280,9 +290,9 @@ async function handleSaveRecord(e) {
             const totalQty = Number(qtyInputs[i].value) || 0;
 
             const newLogRef = rtdb.ref('inspection_logs').push();
-            await newLogRef.set({
+            const promise = newLogRef.set({
                 userId: currentUser.uid,
-                userName: currentUserRole === 'admin' ? `${userName} (Admin)` : userName,
+                userName: formattedUserName,
                 poNumber,
                 articleDetails,
                 color,
@@ -292,18 +302,23 @@ async function handleSaveRecord(e) {
                 date,
                 loggedAt: firebase.database.ServerValue.TIMESTAMP
             });
+            savePromises.push(promise);
         }
+
+        await Promise.all(savePromises);
+
     } else {
-        let totalQty = Number(document.getElementById('totalQty').value) || 0;
-        let dailyInspectedQty = Number(document.getElementById('dailyInspectedQty').value) || 0;
-        let dailyStoresQty = Number(document.getElementById('dailyStoresQty').value) || 0;
-        const articleDetails = document.getElementById('singleArticleDetails').value.trim();
-        const color = document.getElementById('singleColor').value.trim();
+        let totalQty = Number(document.getElementById('totalQty')?.value) || 0;
+        let dailyInspectedQty = Number(document.getElementById('dailyInspectedQty')?.value) || 0;
+        let dailyStoresQty = Number(document.getElementById('dailyStoresQty')?.value) || 0;
+        const articleDetails = document.getElementById('singleArticleDetails')?.value.trim() || '';
+        const color = document.getElementById('singleColor')?.value.trim() || '';
 
         let accumInspected = 0;
         let accumStored = 0;
 
         const snap = await rtdb.ref('inspection_logs').orderByChild('poNumber').equalTo(poNumber).once('value');
+        
         snap.forEach(child => {
             const d = child.val();
             if (d.checkType === '100%') {
@@ -319,7 +334,7 @@ async function handleSaveRecord(e) {
         const newLogRef = rtdb.ref('inspection_logs').push();
         await newLogRef.set({
             userId: currentUser.uid,
-            userName: currentUserRole === 'admin' ? `${userName} (Admin)` : userName,
+            userName: formattedUserName,
             poNumber,
             articleDetails,
             color,
@@ -387,8 +402,8 @@ function loadData() {
     if (headerDateElem) headerDateElem.innerText = `Date: ${selectedDate}`;
 
     rtdb.ref('inspection_logs').once('value').then((snapshot) => {
-        if (tbody20) tbody20.innerHTML = '';
-        if (tbody100) tbody100.innerHTML = '';
+        let html20 = '';
+        let html100 = '';
 
         if (!snapshot.exists()) {
             if (tbody20) tbody20.innerHTML = '<tr><td colspan="6" style="text-align:center;">No entries found.</td></tr>';
@@ -415,7 +430,6 @@ function loadData() {
 
             let badgeClass = data.status === 'OK' ? 'badge-ok' : (data.status === 'HOLD' ? 'badge-hold' : 'badge-reject');
             
-            // Check ownership & admin permission properly
             const isOwner = (currentUser && currentUser.uid === data.userId) || (currentUserRole === 'admin');
 
             let statusCell = `<span class="badge ${badgeClass}">${data.status}</span>`;
@@ -434,40 +448,37 @@ function loadData() {
             }
 
             if (data.checkType === '100%') {
-                if (tbody100) {
-                    tbody100.innerHTML += `
-                        <tr>
-                            <td><strong>${data.poNumber || ''}</strong></td>
-                            <td>${data.articleDetails || ''}</td>
-                            <td>${data.color || ''}</td>
-                            <td>${data.totalQty || 0}</td>
-                            <td>${data.dailyInspectedQty || 0}</td>
-                            <td style="color:#2563eb; font-weight:bold;">${data.accumInspected || 0}</td>
-                            <td style="color:#ef4444; font-weight:bold;">${(data.remainingQty < 0 || isNaN(data.remainingQty)) ? 0 : data.remainingQty}</td>
-                            <td>${data.dailyStoresQty || 0} (${data.accumStored || 0})</td>
-                            <td><small style="color:#64748b;">${data.userName || 'User'}</small></td>
-                            <td>${statusCell}</td>
-                        </tr>
-                    `;
-                }
+                html100 += `
+                    <tr>
+                        <td><strong>${data.poNumber || ''}</strong></td>
+                        <td>${data.articleDetails || ''}</td>
+                        <td>${data.color || ''}</td>
+                        <td>${data.totalQty || 0}</td>
+                        <td>${data.dailyInspectedQty || 0}</td>
+                        <td style="color:#2563eb; font-weight:bold;">${data.accumInspected || 0}</td>
+                        <td style="color:#ef4444; font-weight:bold;">${(data.remainingQty < 0 || isNaN(data.remainingQty)) ? 0 : data.remainingQty}</td>
+                        <td>${data.dailyStoresQty || 0} (${data.accumStored || 0})</td>
+                        <td><small style="color:#64748b;">${data.userName || 'User'}</small></td>
+                        <td>${statusCell}</td>
+                    </tr>
+                `;
             } else {
-                if (tbody20) {
-                    tbody20.innerHTML += `
-                        <tr>
-                            <td><strong>${data.poNumber || ''}</strong></td>
-                            <td>${data.articleDetails || ''}</td>
-                            <td>${data.color || ''}</td>
-                            <td>${data.totalQty || 0}</td>
-                            <td><small style="color:#64748b;">${data.userName || 'User'}</small></td>
-                            <td>${statusCell}</td>
-                        </tr>
-                    `;
-                }
+                html20 += `
+                    <tr>
+                        <td><strong>${data.poNumber || ''}</strong></td>
+                        <td>${data.articleDetails || ''}</td>
+                        <td>${data.color || ''}</td>
+                        <td>${data.totalQty || 0}</td>
+                        <td><small style="color:#64748b;">${data.userName || 'User'}</small></td>
+                        <td>${statusCell}</td>
+                    </tr>
+                `;
             }
         });
 
-        if (tbody20 && tbody20.innerHTML === '') tbody20.innerHTML = '<tr><td colspan="6" style="text-align:center;">No 20% records found.</td></tr>';
-        if (tbody100 && tbody100.innerHTML === '') tbody100.innerHTML = '<tr><td colspan="10" style="text-align:center;">No 100% records found.</td></tr>';
+        if (tbody20) tbody20.innerHTML = html20 || '<tr><td colspan="6" style="text-align:center;">No 20% records found.</td></tr>';
+        if (tbody100) tbody100.innerHTML = html100 || '<tr><td colspan="10" style="text-align:center;">No 100% records found.</td></tr>';
+
     }).catch((err) => {
         console.error("Data Load Error:", err);
         if (tbody20) tbody20.innerHTML = '<tr><td colspan="6" style="text-align:center; color:red;">Error loading data</td></tr>';
