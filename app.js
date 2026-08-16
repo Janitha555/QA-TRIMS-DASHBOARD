@@ -1,6 +1,9 @@
 let currentUser = null;
 let currentUserRole = "operator";
 
+// 🔴 ඔබේ GitHub Username සහ Repo Name මෙතැන වෙනස් කරන්න
+const DEFAULT_AVATAR = "https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/YOUR_REPO_NAME/main/profile.png";
+
 // Default Date එක Today ලෙස සැකසීම
 document.getElementById('filterDate').value = new Date().toISOString().split('T')[0];
 
@@ -13,7 +16,7 @@ auth.onAuthStateChanged((user) => {
 
         rtdb.ref('users/' + user.uid).once('value').then((snapshot) => {
             const userData = snapshot.val();
-            
+
             if ((userData && userData.role === 'admin') || user.email.includes('admin')) {
                 currentUserRole = 'admin';
             } else {
@@ -70,13 +73,42 @@ function handleLogout() {
 function updateUserUI(name, photo) {
     document.getElementById('nav-username').innerText = name || "User";
     document.getElementById('nav-role').innerText = currentUserRole;
-    if (photo) document.getElementById('nav-avatar').src = photo;
+
+    // Photo එකක් නැත්නම් GitHub profile.png එක පෙන්වයි
+    document.getElementById('nav-avatar').src = photo || DEFAULT_AVATAR;
 }
 
-// ✨ Register New User Function (Admin එකෙන් අලුත් Users ලා එකතු කිරීම)
+// Facebook Link එක හරහා Profile Picture එක Update කිරීම
+async function setFacebookProfilePicture() {
+    const fbLink = prompt("Paste your public facebook profile link (Eg: https://www.facebook.com/zuck):");
+    if (!fbLink) return;
+
+    try {
+        let username = fbLink.trim().replace(/\/$/, "").split('/').pop();
+
+        if (!username) {
+            alert("❌ බාල Facebook Link එකකි!");
+            return;
+        }
+
+        const fbPhotoUrl = `https://graph.facebook.com/${username}/picture?type=large`;
+
+        await rtdb.ref('users/' + currentUser.uid).update({
+            photoURL: fbPhotoUrl
+        });
+
+        document.getElementById('nav-avatar').src = fbPhotoUrl;
+        alert("✅ Facebook Profile Picture එක සාර්ථකව Update විය!");
+
+    } catch (error) {
+        alert("❌ Error: " + error.message);
+    }
+}
+
+// Register New User Function (Admin)
 async function handleCreateUser(e) {
     e.preventDefault();
-    
+
     const name = document.getElementById('new-user-name').value.trim();
     const userInput = document.getElementById('new-user-email').value.trim();
     const pass = document.getElementById('new-user-pass').value;
@@ -84,13 +116,11 @@ async function handleCreateUser(e) {
     const email = userInput.includes('@') ? userInput : `${userInput}@trims.com`;
 
     try {
-        // Secondary app එකක් හරහා Admin Logout වීම වළක්වා ගනිමින් අලුත් User සෑදීම
         let secondaryApp = firebase.apps.length > 1 ? firebase.apps[1] : firebase.initializeApp(firebaseConfig, "SecondaryApp");
 
         const userCredential = await secondaryApp.auth().createUserWithEmailAndPassword(email, pass);
         const newUser = userCredential.user;
 
-        // Database එකේ user details save කිරීම
         await rtdb.ref('users/' + newUser.uid).set({
             name: name,
             email: email,
@@ -98,11 +128,10 @@ async function handleCreateUser(e) {
             createdAt: firebase.database.ServerValue.TIMESTAMP
         });
 
-        // Secondary session එක ක්ලියර් කිරීම
         await secondaryApp.auth().signOut();
 
         alert(`✅ Operator "${name}" සාර්ථකව එකතු කරන ලදී!`);
-        
+
         e.target.reset();
         loadSystemUsers();
 
@@ -116,7 +145,7 @@ async function handleCreateUser(e) {
 function loadSystemUsers() {
     const select = document.getElementById('master-user-select');
     const userListUI = document.getElementById('users-list');
-    
+
     if (select) select.innerHTML = `<option value="ALL">Show All Users Data</option>`;
     if (userListUI) userListUI.innerHTML = '';
 
@@ -161,7 +190,7 @@ function toggleCheckTypeFields() {
     }
 }
 
-// Save Entry (Supports Dynamic Multi Articles & Owner Info)
+// Save Entry
 async function handleSaveRecord(e) {
     e.preventDefault();
     const poNumber = document.getElementById('poNumber').value.trim();
@@ -244,8 +273,7 @@ async function handleSaveRecord(e) {
 
     alert("Inspection Entry Saved Successfully!");
     e.target.reset();
-    
-    // Reset Dynamic Rows
+
     document.getElementById('article-color-rows').innerHTML = `
         <div class="article-row">
             <input type="text" class="item-article" placeholder="Article Specs" required>
@@ -257,7 +285,7 @@ async function handleSaveRecord(e) {
     loadData();
 }
 
-// Ownership Control: Only Owner/Admin can Change Status
+// Ownership Control
 function updateStatus(key, newStatus, recordOwnerId) {
     if (currentUserRole !== 'admin' && currentUser.uid !== recordOwnerId) {
         alert("🔒 Access Denied: You can only view this record. Only the user who created it can edit it.");
@@ -274,16 +302,15 @@ function updateStatus(key, newStatus, recordOwnerId) {
     }
 }
 
-// Load Data: Default එකේදී තමන්ගේ Data විතරක් පෙන්වන අතර, Search කළ විට පමණක් වෙනත් Users ලාගේ Data පෙන්වයි.
-// Load Data: Default view එකේදී 20% සහ 100% දෙකේම තමන්ගේ Data පමණක් පෙන්වන අතර, Search කළ විට පමණක් වෙනත් අයට අයත් Data පෙන්වයි.
+// Load Data Function
 function loadData() {
     const tbody20 = document.getElementById('tableBody20');
     const tbody100 = document.getElementById('tableBody100');
     const searchQuery = document.getElementById('searchPO').value.toLowerCase().trim();
-    
+
     tbody20.innerHTML = '<tr><td colspan="6">Loading...</td></tr>';
     tbody100.innerHTML = '<tr><td colspan="10">Loading...</td></tr>';
-    
+
     const selectedDate = document.getElementById('filterDate').value;
     const headerDateElem = document.getElementById('pdf-date-header');
     if (headerDateElem) headerDateElem.innerText = `Date: ${selectedDate}`;
@@ -302,17 +329,13 @@ function loadData() {
             const key = childSnap.key;
             const data = childSnap.val();
 
-            // 1. User Filter Logic (Search එකක් නැති විට තමන්ගේ දත්ත පමණි)
             if (searchQuery === '') {
-                // දිනය ගැලපෙන්නේ නැත්නම් skip කරන්න
                 if (data.date !== selectedDate) return;
 
-                // Operator කෙනෙක් නම්, තමන්ගේ නොවන සියලුම records (20% සහ 100% දෙකම) hide කරන්න
                 if (currentUserRole !== 'admin' && data.userId !== currentUser.uid) {
                     return; 
                 }
             } else {
-                // 2. Search Filter Logic (Search කළ විට PO හෝ Article Spec ගැලපෙන ඕනෑම අයෙකුගේ data පෙන්වයි)
                 const poMatch = data.poNumber && data.poNumber.toLowerCase().includes(searchQuery);
                 const articleMatch = data.articleDetails && data.articleDetails.toLowerCase().includes(searchQuery);
                 if (!poMatch && !articleMatch) return;
@@ -321,9 +344,8 @@ function loadData() {
             let badgeClass = data.status === 'OK' ? 'badge-ok' : (data.status === 'HOLD' ? 'badge-hold' : 'badge-reject');
             const isOwner = (currentUser.uid === data.userId) || (currentUserRole === 'admin');
 
-            // Status Cell setup with Edit Restrictions
             let statusCell = `<span class="badge ${badgeClass}">${data.status}</span>`;
-            
+
             if (data.status === 'HOLD') {
                 if (isOwner) {
                     statusCell += `
@@ -337,7 +359,6 @@ function loadData() {
                 }
             }
 
-            // Tables එකට Data ඇතුළත් කිරීම (100% සහ 20% වෙන් වෙන්ව)
             if (data.checkType === '100%') {
                 tbody100.innerHTML += `
                     <tr>
@@ -366,48 +387,6 @@ function loadData() {
                 `;
             }
         });
-
-        // Default Image path (GitHub Repository)
-const DEFAULT_AVATAR = "https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/YOUR_REPO_NAME/main/default.png";
-
-// User Login වූ පසු Default Image එක පෙන්වීම
-function updateUserUI(name, photo) {
-    document.getElementById('nav-username').innerText = name || "User";
-    document.getElementById('nav-role').innerText = currentUserRole;
-    
-    // photo එකක් නැත්නම් GitHub Default Image එක පෙන්වයි
-    document.getElementById('nav-avatar').src = photo || DEFAULT_AVATAR;
-}
-
-// Facebook Link එක හරහා Profile Picture එක Update කිරීම
-async function setFacebookProfilePicture() {
-    const fbLink = prompt("Past your public facebook profile link (Eg: https://www.facebook.com/zuck):");
-    if (!fbLink) return;
-
-    try {
-        // Facebook URL එකෙන් Username / ID එක වෙන් කරගැනීම
-        let username = fbLink.trim().replace(/\/$/, "").split('/').pop();
-        
-        if (!username) {
-            alert("❌ බාල Facebook Link එකකි!");
-            return;
-        }
-
-        // Facebook Graph API direct image URL එක සෑදීම
-        const fbPhotoUrl = `https://graph.facebook.com/${username}/picture?type=large`;
-
-        // Database එකේ Save කිරීම
-        await rtdb.ref('users/' + currentUser.uid).update({
-            photoURL: fbPhotoUrl
-        });
-
-        document.getElementById('nav-avatar').src = fbPhotoUrl;
-        alert("✅ Facebook Profile Picture එක සාර්ථකව Update විය!");
-
-    } catch (error) {
-        alert("❌ Error: " + error.message);
-    }
-}
 
         if (tbody20.innerHTML === '') tbody20.innerHTML = '<tr><td colspan="6" style="text-align:center;">No 20% records found.</td></tr>';
         if (tbody100.innerHTML === '') tbody100.innerHTML = '<tr><td colspan="10" style="text-align:center;">No 100% records found.</td></tr>';
