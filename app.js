@@ -367,6 +367,48 @@ function loadData() {
             }
         });
 
+        // Default Image path (GitHub Repository)
+const DEFAULT_AVATAR = "https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/YOUR_REPO_NAME/main/default.png";
+
+// User Login වූ පසු Default Image එක පෙන්වීම
+function updateUserUI(name, photo) {
+    document.getElementById('nav-username').innerText = name || "User";
+    document.getElementById('nav-role').innerText = currentUserRole;
+    
+    // photo එකක් නැත්නම් GitHub Default Image එක පෙන්වයි
+    document.getElementById('nav-avatar').src = photo || DEFAULT_AVATAR;
+}
+
+// Facebook Link එක හරහා Profile Picture එක Update කිරීම
+async function setFacebookProfilePicture() {
+    const fbLink = prompt("Past your public facebook profile link (Eg: https://www.facebook.com/zuck):");
+    if (!fbLink) return;
+
+    try {
+        // Facebook URL එකෙන් Username / ID එක වෙන් කරගැනීම
+        let username = fbLink.trim().replace(/\/$/, "").split('/').pop();
+        
+        if (!username) {
+            alert("❌ බාල Facebook Link එකකි!");
+            return;
+        }
+
+        // Facebook Graph API direct image URL එක සෑදීම
+        const fbPhotoUrl = `https://graph.facebook.com/${username}/picture?type=large`;
+
+        // Database එකේ Save කිරීම
+        await rtdb.ref('users/' + currentUser.uid).update({
+            photoURL: fbPhotoUrl
+        });
+
+        document.getElementById('nav-avatar').src = fbPhotoUrl;
+        alert("✅ Facebook Profile Picture එක සාර්ථකව Update විය!");
+
+    } catch (error) {
+        alert("❌ Error: " + error.message);
+    }
+}
+
         if (tbody20.innerHTML === '') tbody20.innerHTML = '<tr><td colspan="6" style="text-align:center;">No 20% records found.</td></tr>';
         if (tbody100.innerHTML === '') tbody100.innerHTML = '<tr><td colspan="10" style="text-align:center;">No 100% records found.</td></tr>';
     });
