@@ -5,16 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trims QA Enterprise Portal</title>
     <link rel="stylesheet" href="style.css">
+    
+    <!-- Firebase Compat SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 </head>
 <body>
 
+    <!-- Authentication Screen -->
     <div id="auth-screen">
         <div class="login-card">
             <h2>Trims QA Portal</h2>
-            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Sign in to your account</p>
+            <p style="color: var(--text-muted, #64748b); font-size: 13px; margin-bottom: 20px;">Sign in to your account</p>
             <form id="login-form" onsubmit="handleLogin(event)">
                 <div class="form-group">
                     <label>Username / Email</label>
@@ -26,11 +29,12 @@
                 </div>
                 <button type="submit" class="btn btn-primary" style="margin-top: 10px;">Sign In</button>
             </form>
-            <div id="login-error" style="color: var(--danger); font-size: 12px; margin-top: 12px;"></div>
+            <div id="login-error" style="color: var(--danger, #ef4444); font-size: 12px; margin-top: 12px;"></div>
         </div>
     </div>
 
-    <div id="app-screen">
+    <!-- Main Dashboard Screen -->
+    <div id="app-screen" style="display: none;"> <!-- JS එකෙන් login වූ පසු පෙන්වීමට display:none යෙදිය හැක -->
         <div class="container">
             
             <div class="brand-banner">
@@ -42,12 +46,12 @@
                 <div style="display: flex; align-items: center; gap: 15px;">
                     <div class="user-nav-profile" style="display: flex; align-items: center; gap: 10px;">
                         
-                        <!-- Hidden File Input for Device Image Selection -->
+                        <!-- Hidden File Input for Avatar Selection -->
                         <input type="file" id="avatar-file-input" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
                         
-                        <!-- Profile Avatar Image -->
+                        <!-- Profile Avatar Image (Default Image Link Fixed) -->
                         <img id="nav-avatar" class="avatar" 
-                             src="https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/YOUR_REPO_NAME/main/default.png" 
+                             src="https://ui-avatars.com/api/?name=User&background=random" 
                              alt="Profile" 
                              onclick="document.getElementById('avatar-file-input').click()" 
                              style="cursor: pointer; width: 38px; height: 38px; border-radius: 50%; object-fit: cover;" 
@@ -62,8 +66,9 @@
                 </div>
             </div>
 
+            <!-- Master Admin Controls -->
             <div id="master-admin-panel" class="admin-panel no-print" style="display: none;">
-                <h3 style="margin-bottom: 15px; color: var(--primary);">👑 Master Dashboard Control</h3>
+                <h3 style="margin-bottom: 15px; color: var(--primary, #0f172a);">👑 Master Dashboard Control</h3>
                 <div class="grid-2">
                     <div class="card">
                         <h4 style="font-size: 13px; margin-bottom: 10px;">Register New Operator</h4>
@@ -92,7 +97,7 @@
                             </select>
                         </div>
                         <h4 style="font-size: 12px; margin-top: 15px;">Registered Users:</h4>
-                        <div style="max-height: 100px; overflow-y: auto; border: 1px solid var(--border); border-radius: 6px; padding: 5px;">
+                        <div style="max-height: 100px; overflow-y: auto; border: 1px solid var(--border, #e2e8f0); border-radius: 6px; padding: 5px;">
                             <ul id="users-list" style="list-style: none; font-size: 12px;"></ul>
                         </div>
                     </div>
@@ -102,7 +107,7 @@
             <div class="grid-main">
                 <!-- Data Entry Form -->
                 <div class="card no-print">
-                    <h3 style="font-size: 14px; text-transform: uppercase; margin-bottom: 15px; border-left: 3px solid var(--accent); padding-left: 8px;">Log Inspection Record</h3>
+                    <h3 style="font-size: 14px; text-transform: uppercase; margin-bottom: 15px; border-left: 3px solid var(--accent, #3b82f6); padding-left: 8px;">Log Inspection Record</h3>
                     <form onsubmit="handleSaveRecord(event)">
                         <div class="form-group">
                             <label>Inspection Type</label>
@@ -120,7 +125,7 @@
                         <!-- Dynamic Multi Article/Color Section for 20% -->
                         <div id="dynamic-article-container" style="margin-bottom: 12px;">
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                                <label style="font-size:11px; font-weight:700; color:var(--primary-light);">ARTICLES & COLORS LIST</label>
+                                <label style="font-size:11px; font-weight:700; color:var(--primary-light, #334155);">ARTICLES & COLORS LIST</label>
                                 <button type="button" onclick="addArticleColorRow()" class="btn-add-more">+ Add Article/Color</button>
                             </div>
                             <div id="article-color-rows">
@@ -133,7 +138,7 @@
                         </div>
 
                         <!-- Fields for 100% Inspection -->
-                        <div id="hundred-percent-fields" style="display: none; background: #f8fafc; padding: 10px; border-radius: 6px; border: 1px dashed var(--accent); margin-bottom: 10px;">
+                        <div id="hundred-percent-fields" style="display: none; background: #f8fafc; padding: 10px; border-radius: 6px; border: 1px dashed var(--accent, #3b82f6); margin-bottom: 10px;">
                             <div class="form-group">
                                 <label>Article Specs</label>
                                 <input type="text" id="singleArticleDetails" placeholder="Article Specs">
@@ -174,13 +179,13 @@
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                         <div>
                             <h2 style="font-size: 18px;">TRIMS QUALITY ASSURANCE REPORT</h2>
-                            <p id="pdf-date-header" style="font-weight: bold; font-size: 13px; color: var(--text-muted);"></p>
+                            <p id="pdf-date-header" style="font-weight: bold; font-size: 13px; color: var(--text-muted, #64748b);"></p>
                         </div>
                         
                         <!-- Search & Print Actions -->
                         <div class="no-print" style="display: flex; gap: 10px; align-items: center;">
-                            <input type="text" id="searchPO" onkeyup="loadData()" placeholder="🔍 Search PO / Article..." style="padding: 6px 10px; border-radius: 6px; border: 1px solid var(--accent); font-size:12px; width:200px;">
-                            <input type="date" id="filterDate" onchange="loadData()" style="padding: 6px; border-radius: 6px; border: 1px solid var(--border);">
+                            <input type="text" id="searchPO" onkeyup="loadData()" placeholder="🔍 Search PO / Article..." style="padding: 6px 10px; border-radius: 6px; border: 1px solid var(--accent, #3b82f6); font-size:12px; width:200px;">
+                            <input type="date" id="filterDate" onchange="loadData()" style="padding: 6px; border-radius: 6px; border: 1px solid var(--border, #cbd5e1);">
                             <button class="btn btn-secondary" onclick="window.print()">Print PDF</button>
                         </div>
                     </div>
@@ -230,6 +235,7 @@
         </div>
     </div>
 
+    <!-- Firebase Config & App Logic -->
     <script src="firebase-config.js"></script>
     <script src="app.js"></script>
 </body>
