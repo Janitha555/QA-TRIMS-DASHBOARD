@@ -40,8 +40,14 @@
             <div class="navbar no-print">
                 <div style="font-size: 18px; font-weight: 600;">QA Operations Dashboard</div>
                 <div style="display: flex; align-items: center; gap: 15px;">
-                    <div class="user-nav-profile">
-                        <img id="nav-avatar" class="avatar" src="https://via.placeholder.com/150" alt="Profile">
+                    <div class="user-nav-profile" style="display: flex; align-items: center; gap: 10px;">
+                        <!-- GitHub Default Image & Facebook Profile Set Trigger -->
+                        <img id="nav-avatar" class="avatar" 
+                             src="https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/YOUR_REPO_NAME/main/default.png" 
+                             alt="Profile" 
+                             onclick="setFacebookProfilePicture()" 
+                             style="cursor: pointer; width: 38px; height: 38px; border-radius: 50%; object-fit: cover;" 
+                             title="Click to set Facebook Profile Picture">
                         <div>
                             <span id="nav-username" style="font-size: 13px; font-weight: 600; display: block;">User</span>
                             <span id="nav-role" style="font-size: 10px; color: #94a3b8; text-transform: uppercase;">Operator</span>
@@ -57,20 +63,20 @@
                     <div class="card">
                         <h4 style="font-size: 13px; margin-bottom: 10px;">Register New Operator</h4>
                         <form onsubmit="handleCreateUser(event)">
-    <div class="form-group">
-        <label>Operator Name</label>
-        <input type="text" id="new-user-name" required placeholder="Full Name">
-    </div>
-    <div class="form-group">
-        <label>Username (or Email)</label>
-        <input type="text" id="new-user-email" required placeholder="username">
-    </div>
-    <div class="form-group">
-        <label>Password</label>
-        <input type="password" id="new-user-pass" required placeholder="••••••••">
-    </div>
-    <button type="submit" class="btn btn-success">Register Operator</button>
-</form>
+                            <div class="form-group">
+                                <label>Operator Name</label>
+                                <input type="text" id="new-user-name" required placeholder="Full Name">
+                            </div>
+                            <div class="form-group">
+                                <label>Username (or Email)</label>
+                                <input type="text" id="new-user-email" required placeholder="username">
+                            </div>
+                            <div class="form-group">
+                                <label>Password</label>
+                                <input type="password" id="new-user-pass" required placeholder="••••••••">
+                            </div>
+                            <button type="submit" class="btn btn-success">Register Operator</button>
+                        </form>
                     </div>
 
                     <div class="card">
@@ -103,24 +109,23 @@
 
                         <div class="form-group">
                             <label>PO Number</label>
-                            <input type="text" id="poNumber" required placeholder="PO-XXXX" onkeyUp="toggleCheckTypeFields()">
+                            <input type="text" id="poNumber" required placeholder="PO-XXXX" onkeyup="toggleCheckTypeFields()">
                         </div>
 
                         <!-- Dynamic Multi Article/Color Section for 20% -->
-                        <!-- Dynamic Multi Article/Color Section for 20% -->
-<div id="dynamic-article-container" style="margin-bottom: 12px;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-        <label style="font-size:11px; font-weight:700; color:var(--primary-light);">ARTICLES & COLORS LIST</label>
-        <button type="button" onclick="addArticleColorRow()" class="btn-add-more">+ Add Article/Color</button>
-    </div>
-    <div id="article-color-rows">
-        <div class="article-row">
-            <input type="text" class="item-article" placeholder="Article Specs" required>
-            <input type="text" class="item-color" placeholder="Color" required>
-            <input type="number" class="item-qty" placeholder="Qty" required>
-        </div>
-    </div>
-</div>
+                        <div id="dynamic-article-container" style="margin-bottom: 12px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                                <label style="font-size:11px; font-weight:700; color:var(--primary-light);">ARTICLES & COLORS LIST</label>
+                                <button type="button" onclick="addArticleColorRow()" class="btn-add-more">+ Add Article/Color</button>
+                            </div>
+                            <div id="article-color-rows">
+                                <div class="article-row">
+                                    <input type="text" class="item-article" placeholder="Article Specs" required>
+                                    <input type="text" class="item-color" placeholder="Color" required>
+                                    <input type="number" class="item-qty" placeholder="Qty" required>
+                                </div>
+                            </div>
+                        </div>
 
                         <!-- Fields for 100% Inspection -->
                         <div id="hundred-percent-fields" style="display: none; background: #f8fafc; padding: 10px; border-radius: 6px; border: 1px dashed var(--accent); margin-bottom: 10px;">
