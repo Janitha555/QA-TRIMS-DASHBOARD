@@ -1,7 +1,7 @@
 let currentUser = null;
 let currentUserRole = "operator";
 
-// 🔴 ඔබේ GitHub Username සහ Repo Name මෙතැන වෙනස් කරන්න
+// 🔴 GitHub Profile Default Avatar URL
 const DEFAULT_AVATAR = "https://raw.githubusercontent.com/Janitha555/QA-TRIMS-DASHBOARD/main/profile.png";
 
 // Default Date එක Today ලෙස සැකසීම
@@ -35,7 +35,8 @@ auth.onAuthStateChanged((user) => {
             }
 
             loadData();
-        }).catch(() => {
+        }).catch((err) => {
+            console.error("Auth Data Load Error:", err);
             if (user.email.includes('admin')) {
                 currentUserRole = 'admin';
                 document.getElementById('master-admin-panel').style.display = 'block';
@@ -46,6 +47,8 @@ auth.onAuthStateChanged((user) => {
         });
 
     } else {
+        currentUser = null;
+        currentUserRole = "operator";
         document.getElementById('auth-screen').style.display = 'flex';
         document.getElementById('app-screen').style.display = 'none';
     }
@@ -63,7 +66,10 @@ function handleLogin(e) {
 
     auth.signInWithEmailAndPassword(constructedEmail, pass)
         .then(() => errDiv.innerText = '')
-        .catch(() => errDiv.innerText = "Error: Invalid Credentials");
+        .catch((err) => {
+            console.error("Login Error:", err);
+            errDiv.innerText = "Error: Invalid Credentials";
+        });
 }
 
 // Logout Handler
@@ -73,11 +79,15 @@ function handleLogout() {
 
 // User UI updates (Navbar)
 function updateUserUI(name, photo) {
-    document.getElementById('nav-username').innerText = name || "User";
-    document.getElementById('nav-role').innerText = currentUserRole;
+    const navUsername = document.getElementById('nav-username');
+    const navRole = document.getElementById('nav-role');
+    const navAvatar = document.getElementById('nav-avatar');
+
+    if (navUsername) navUsername.innerText = name || "User";
+    if (navRole) navRole.innerText = currentUserRole.toUpperCase();
 
     // Photo එකක් නැත්නම් GitHub profile.png එක පෙන්වයි
-    document.getElementById('nav-avatar').src = photo || DEFAULT_AVATAR;
+    if (navAvatar) navAvatar.src = photo || DEFAULT_AVATAR;
 }
 
 // 📸 Image Upload & Base64 Compression Logic
@@ -130,7 +140,8 @@ function handleImageUpload(event) {
                 rtdb.ref('users/' + currentUser.uid).update({
                     photoURL: base64Image
                 }).then(() => {
-                    document.getElementById('nav-avatar').src = base64Image;
+                    const navAvatar = document.getElementById('nav-avatar');
+                    if (navAvatar) navAvatar.src = base64Image;
                     alert("✅ Profile Picture එක සාර්ථකව Update විය!");
                 }).catch((err) => {
                     alert("❌ Save Error: " + err.message);
@@ -153,7 +164,14 @@ async function handleCreateUser(e) {
     const email = userInput.includes('@') ? userInput : `${userInput}@trims.com`;
 
     try {
-        let secondaryApp = firebase.apps.length > 1 ? firebase.apps[1] : firebase.initializeApp(firebaseConfig, "SecondaryApp");
+        let secondaryApp;
+        const existingApp = firebase.apps.find(app => app.name === "SecondaryApp");
+        
+        if (existingApp) {
+            secondaryApp = existingApp;
+        } else {
+            secondaryApp = firebase.initializeApp(firebaseConfig, "SecondaryApp");
+        }
 
         const userCredential = await secondaryApp.auth().createUserWithEmailAndPassword(email, pass);
         const newUser = userCredential.user;
@@ -193,12 +211,14 @@ function loadSystemUsers() {
             if (select) select.innerHTML += `<option value="${uid}">${data.name || 'User'} (${data.email || 'No Email'})</option>`;
             if (userListUI) userListUI.innerHTML += `<li style="padding: 4px 0; border-bottom: 1px solid #f1f5f9;">👤 <strong>${data.name || 'User'}</strong> - <span class="badge badge-role">${data.role || 'operator'}</span></li>`;
         });
-    });
+    }).catch(err => console.error("Error loading system users:", err));
 }
 
 // Dynamic Article/Color Row Add for 20% Inspection
 function addArticleColorRow() {
     const container = document.getElementById('article-color-rows');
+    if (!container) return;
+    
     const newRow = document.createElement('div');
     newRow.className = 'article-row';
     newRow.innerHTML = `
@@ -213,23 +233,29 @@ function addArticleColorRow() {
 // 100% / 20% Type Change Listener
 function toggleCheckTypeFields() {
     const type = document.getElementById('checkType').value;
-    const po = document.getElementById('poNumber').value.trim();
+    const poElem = document.getElementById('poNumber');
+    const po = poElem ? poElem.value.trim() : '';
     const hundredFields = document.getElementById('hundred-percent-fields');
     const dynamicArticleContainer = document.getElementById('dynamic-article-container');
 
     if (type === '100%') {
-        hundredFields.style.display = 'block';
-        dynamicArticleContainer.style.display = 'none';
+        if (hundredFields) hundredFields.style.display = 'block';
+        if (dynamicArticleContainer) dynamicArticleContainer.style.display = 'none';
         if (po !== '' && typeof checkExistingPOQty === "function") checkExistingPOQty(po);
     } else {
-        hundredFields.style.display = 'none';
-        dynamicArticleContainer.style.display = 'block';
+        if (hundredFields) hundredFields.style.display = 'none';
+        if (dynamicArticleContainer) dynamicArticleContainer.style.display = 'block';
     }
 }
 
 // Save Entry
 async function handleSaveRecord(e) {
     e.preventDefault();
+    if (!currentUser) {
+        alert("❌ User session expired. Please login again.");
+        return;
+    }
+
     const poNumber = document.getElementById('poNumber').value.trim();
     const checkType = document.getElementById('checkType').value;
     const status = document.getElementById('status').value;
@@ -239,7 +265,9 @@ async function handleSaveRecord(e) {
     try {
         const userSnap = await rtdb.ref('users/' + currentUser.uid).once('value');
         if (userSnap.exists() && userSnap.val().name) userName = userSnap.val().name;
-    } catch (e) {}
+    } catch (e) {
+        console.warn("User fetch error:", e);
+    }
 
     if (checkType === '20%') {
         const articleInputs = document.querySelectorAll('.item-article');
@@ -247,8 +275,8 @@ async function handleSaveRecord(e) {
         const qtyInputs = document.querySelectorAll('.item-qty');
 
         for (let i = 0; i < articleInputs.length; i++) {
-            const articleDetails = articleInputs[i].value;
-            const color = colorInputs[i].value;
+            const articleDetails = articleInputs[i].value.trim();
+            const color = colorInputs[i].value.trim();
             const totalQty = Number(qtyInputs[i].value) || 0;
 
             const newLogRef = rtdb.ref('inspection_logs').push();
@@ -269,8 +297,8 @@ async function handleSaveRecord(e) {
         let totalQty = Number(document.getElementById('totalQty').value) || 0;
         let dailyInspectedQty = Number(document.getElementById('dailyInspectedQty').value) || 0;
         let dailyStoresQty = Number(document.getElementById('dailyStoresQty').value) || 0;
-        const articleDetails = document.getElementById('singleArticleDetails').value;
-        const color = document.getElementById('singleColor').value;
+        const articleDetails = document.getElementById('singleArticleDetails').value.trim();
+        const color = document.getElementById('singleColor').value.trim();
 
         let accumInspected = 0;
         let accumStored = 0;
@@ -308,16 +336,19 @@ async function handleSaveRecord(e) {
         });
     }
 
-    alert("Inspection Entry Saved Successfully!");
+    alert("✅ Inspection Entry Saved Successfully!");
     e.target.reset();
 
-    document.getElementById('article-color-rows').innerHTML = `
-        <div class="article-row">
-            <input type="text" class="item-article" placeholder="Article Specs" required>
-            <input type="text" class="item-color" placeholder="Color" required>
-            <input type="number" class="item-qty" placeholder="Qty" required>
-        </div>
-    `;
+    const articleRows = document.getElementById('article-color-rows');
+    if (articleRows) {
+        articleRows.innerHTML = `
+            <div class="article-row">
+                <input type="text" class="item-article" placeholder="Article Specs" required>
+                <input type="text" class="item-color" placeholder="Color" required>
+                <input type="number" class="item-qty" placeholder="Qty" required>
+            </div>
+        `;
+    }
     toggleCheckTypeFields();
     loadData();
 }
@@ -333,8 +364,10 @@ function updateStatus(key, newStatus, recordOwnerId) {
         rtdb.ref('inspection_logs/' + key).update({
             status: newStatus
         }).then(() => {
-            alert("Status Updated Successfully!");
+            alert("✅ Status Updated Successfully!");
             loadData();
+        }).catch((err) => {
+            alert("❌ Update Failed: " + err.message);
         });
     }
 }
@@ -343,22 +376,23 @@ function updateStatus(key, newStatus, recordOwnerId) {
 function loadData() {
     const tbody20 = document.getElementById('tableBody20');
     const tbody100 = document.getElementById('tableBody100');
-    const searchQuery = document.getElementById('searchPO').value.toLowerCase().trim();
+    const searchElem = document.getElementById('searchPO');
+    const searchQuery = searchElem ? searchElem.value.toLowerCase().trim() : '';
 
-    tbody20.innerHTML = '<tr><td colspan="6">Loading...</td></tr>';
-    tbody100.innerHTML = '<tr><td colspan="10">Loading...</td></tr>';
+    if (tbody20) tbody20.innerHTML = '<tr><td colspan="6" style="text-align:center;">Loading...</td></tr>';
+    if (tbody100) tbody100.innerHTML = '<tr><td colspan="10" style="text-align:center;">Loading...</td></tr>';
 
-    const selectedDate = document.getElementById('filterDate').value;
+    const selectedDate = document.getElementById('filterDate') ? document.getElementById('filterDate').value : '';
     const headerDateElem = document.getElementById('pdf-date-header');
     if (headerDateElem) headerDateElem.innerText = `Date: ${selectedDate}`;
 
     rtdb.ref('inspection_logs').once('value').then((snapshot) => {
-        tbody20.innerHTML = '';
-        tbody100.innerHTML = '';
+        if (tbody20) tbody20.innerHTML = '';
+        if (tbody100) tbody100.innerHTML = '';
 
         if (!snapshot.exists()) {
-            tbody20.innerHTML = '<tr><td colspan="6" style="text-align:center;">No entries found.</td></tr>';
-            tbody100.innerHTML = '<tr><td colspan="10" style="text-align:center;">No entries found.</td></tr>';
+            if (tbody20) tbody20.innerHTML = '<tr><td colspan="6" style="text-align:center;">No entries found.</td></tr>';
+            if (tbody100) tbody100.innerHTML = '<tr><td colspan="10" style="text-align:center;">No entries found.</td></tr>';
             return;
         }
 
@@ -366,6 +400,7 @@ function loadData() {
             const key = childSnap.key;
             const data = childSnap.val();
 
+            // Search Query Filter
             if (searchQuery === '') {
                 if (data.date !== selectedDate) return;
 
@@ -379,7 +414,9 @@ function loadData() {
             }
 
             let badgeClass = data.status === 'OK' ? 'badge-ok' : (data.status === 'HOLD' ? 'badge-hold' : 'badge-reject');
-            const isOwner = (currentUser.uid === data.userId) || (currentUserRole === 'admin');
+            
+            // Check ownership & admin permission properly
+            const isOwner = (currentUser && currentUser.uid === data.userId) || (currentUserRole === 'admin');
 
             let statusCell = `<span class="badge ${badgeClass}">${data.status}</span>`;
 
@@ -397,35 +434,43 @@ function loadData() {
             }
 
             if (data.checkType === '100%') {
-                tbody100.innerHTML += `
-                    <tr>
-                        <td><strong>${data.poNumber}</strong></td>
-                        <td>${data.articleDetails}</td>
-                        <td>${data.color}</td>
-                        <td>${data.totalQty || 0}</td>
-                        <td>${data.dailyInspectedQty || 0}</td>
-                        <td style="color:#2563eb; font-weight:bold;">${data.accumInspected || 0}</td>
-                        <td style="color:#ef4444; font-weight:bold;">${data.remainingQty < 0 ? 0 : data.remainingQty}</td>
-                        <td>${data.dailyStoresQty || 0} (${data.accumStored || 0})</td>
-                        <td><small style="color:#64748b;">${data.userName || 'User'}</small></td>
-                        <td>${statusCell}</td>
-                    </tr>
-                `;
+                if (tbody100) {
+                    tbody100.innerHTML += `
+                        <tr>
+                            <td><strong>${data.poNumber || ''}</strong></td>
+                            <td>${data.articleDetails || ''}</td>
+                            <td>${data.color || ''}</td>
+                            <td>${data.totalQty || 0}</td>
+                            <td>${data.dailyInspectedQty || 0}</td>
+                            <td style="color:#2563eb; font-weight:bold;">${data.accumInspected || 0}</td>
+                            <td style="color:#ef4444; font-weight:bold;">${(data.remainingQty < 0 || isNaN(data.remainingQty)) ? 0 : data.remainingQty}</td>
+                            <td>${data.dailyStoresQty || 0} (${data.accumStored || 0})</td>
+                            <td><small style="color:#64748b;">${data.userName || 'User'}</small></td>
+                            <td>${statusCell}</td>
+                        </tr>
+                    `;
+                }
             } else {
-                tbody20.innerHTML += `
-                    <tr>
-                        <td><strong>${data.poNumber}</strong></td>
-                        <td>${data.articleDetails}</td>
-                        <td>${data.color}</td>
-                        <td>${data.totalQty || 0}</td>
-                        <td><small style="color:#64748b;">${data.userName || 'User'}</small></td>
-                        <td>${statusCell}</td>
-                    </tr>
-                `;
+                if (tbody20) {
+                    tbody20.innerHTML += `
+                        <tr>
+                            <td><strong>${data.poNumber || ''}</strong></td>
+                            <td>${data.articleDetails || ''}</td>
+                            <td>${data.color || ''}</td>
+                            <td>${data.totalQty || 0}</td>
+                            <td><small style="color:#64748b;">${data.userName || 'User'}</small></td>
+                            <td>${statusCell}</td>
+                        </tr>
+                    `;
+                }
             }
         });
 
-        if (tbody20.innerHTML === '') tbody20.innerHTML = '<tr><td colspan="6" style="text-align:center;">No 20% records found.</td></tr>';
-        if (tbody100.innerHTML === '') tbody100.innerHTML = '<tr><td colspan="10" style="text-align:center;">No 100% records found.</td></tr>';
-    });
+        if (tbody20 && tbody20.innerHTML === '') tbody20.innerHTML = '<tr><td colspan="6" style="text-align:center;">No 20% records found.</td></tr>';
+        if (tbody100 && tbody100.innerHTML === '') tbody100.innerHTML = '<tr><td colspan="10" style="text-align:center;">No 100% records found.</td></tr>';
+    }).catch((err) => {
+        console.error("Data Load Error:", err);
+        if (tbody20) tbody20.innerHTML = '<tr><td colspan="6" style="text-align:center; color:red;">Error loading data</td></tr>';
+        if (tbody100) tbody100.innerHTML = '<tr><td colspan="10" style="text-align:center; color:red;">Error loading data</td></tr>';
+    }); 
 }
