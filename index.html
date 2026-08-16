@@ -104,21 +104,33 @@
                         <div class="form-group">
                             <label>PO Number</label>
                             <input type="text" id="poNumber" required placeholder="PO-XXXX" onkeyUp="toggleCheckTypeFields()">
-                            <small id="po-calc-info" style="color:red; font-size:10px;"></small>
                         </div>
 
-                        <div class="form-group">
-                            <label>Article Specs</label>
-                            <input type="text" id="articleDetails" required placeholder="Details">
+                        <!-- Dynamic Multi Article/Color Section for 20% -->
+                        <div id="dynamic-article-container" style="margin-bottom: 12px;">
+                            <label style="display:flex; justify-content:space-between; align-items:center; font-size:11px; font-weight:700; margin-bottom:6px;">
+                                ARTICLES & COLORS LIST
+                                <button type="button" onclick="addArticleColorRow()" style="background:var(--accent); color:white; border:none; padding:3px 8px; border-radius:4px; font-size:10px; cursor:pointer;">+ Add Article/Color</button>
+                            </label>
+                            <div id="article-color-rows">
+                                <div class="article-row" style="display: flex; gap: 8px; margin-bottom: 8px;">
+                                    <input type="text" class="item-article" placeholder="Article Specs" style="flex:2;" required>
+                                    <input type="text" class="item-color" placeholder="Color" style="flex:1.5;" required>
+                                    <input type="number" class="item-qty" placeholder="Qty" style="flex:1;" required>
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="form-group">
-                            <label>Color</label>
-                            <input type="text" id="color" required placeholder="Color">
-                        </div>
-
-                        <!-- 100% Dynamic Calculated Fields -->
+                        <!-- Fields for 100% Inspection -->
                         <div id="hundred-percent-fields" style="display: none; background: #f8fafc; padding: 10px; border-radius: 6px; border: 1px dashed var(--accent); margin-bottom: 10px;">
+                            <div class="form-group">
+                                <label>Article Specs</label>
+                                <input type="text" id="singleArticleDetails" placeholder="Article Specs">
+                            </div>
+                            <div class="form-group">
+                                <label>Color</label>
+                                <input type="text" id="singleColor" placeholder="Color">
+                            </div>
                             <div class="form-group">
                                 <label>Full PO Quantity</label>
                                 <input type="number" id="totalQty" placeholder="Total Batch Qty">
@@ -146,20 +158,23 @@
                     </form>
                 </div>
 
-                <!-- Inspection Display Sheet (PDF Ready) -->
+                <!-- Inspection Display Sheet & Search -->
                 <div class="print-area">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                         <div>
                             <h2 style="font-size: 18px;">TRIMS QUALITY ASSURANCE REPORT</h2>
                             <p id="pdf-date-header" style="font-weight: bold; font-size: 13px; color: var(--text-muted);"></p>
                         </div>
+                        
+                        <!-- Search & Print Actions -->
                         <div class="no-print" style="display: flex; gap: 10px; align-items: center;">
+                            <input type="text" id="searchPO" onkeyup="loadData()" placeholder="🔍 Search PO / Article..." style="padding: 6px 10px; border-radius: 6px; border: 1px solid var(--accent); font-size:12px; width:200px;">
                             <input type="date" id="filterDate" onchange="loadData()" style="padding: 6px; border-radius: 6px; border: 1px solid var(--border);">
-                            <button class="btn btn-secondary" onclick="window.print()">Print PDF Report</button>
+                            <button class="btn btn-secondary" onclick="window.print()">Print PDF</button>
                         </div>
                     </div>
 
-                    <!-- 20% Inspection Table -->
+                    <!-- 20% Table -->
                     <h4 class="table-title">📌 20% Inspection Summary Sheet</h4>
                     <div class="table-responsive" style="margin-bottom: 25px;">
                         <table>
@@ -169,6 +184,7 @@
                                     <th>Article Specs</th>
                                     <th>Color</th>
                                     <th>Batch Qty</th>
+                                    <th>Logged By</th>
                                     <th>Status</th>
                                 </tr>
                             </thead>
@@ -176,7 +192,7 @@
                         </table>
                     </div>
 
-                    <!-- 100% Inspection Table -->
+                    <!-- 100% Table -->
                     <h4 class="table-title">📌 100% Inspection Tracking Sheet</h4>
                     <div class="table-responsive">
                         <table>
@@ -189,7 +205,8 @@
                                     <th>Today Checked</th>
                                     <th>Total Inspected</th>
                                     <th>Remaining Qty</th>
-                                    <th>Stores Delivered (Today/Total)</th>
+                                    <th>Stores Delivered</th>
+                                    <th>Logged By</th>
                                     <th>Status</th>
                                 </tr>
                             </thead>
