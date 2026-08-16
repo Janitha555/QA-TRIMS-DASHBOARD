@@ -113,9 +113,10 @@ body {
 }
 
 /* Grid Layout for Form & Tables */
+/* Layout Adjustment */
 .grid-main { 
     display: grid; 
-    grid-template-columns: 340px 1fr; 
+    grid-template-columns: 360px 1fr; /* Left Form area එක 360px දක්වා වැඩි කර ඇත */
     gap: 20px; 
 }
 
@@ -158,20 +159,76 @@ body {
     border-color: var(--accent);
 }
 
-/* ✨ Dynamic Article Rows Custom Styling (New UI Adjustments) */
+/* Dynamic Article Section Box */
 #dynamic-article-container {
     background: #f8fafc;
     border: 1px dashed var(--border);
     padding: 10px;
     border-radius: 8px;
+    box-sizing: border-box;
+    width: 100%;
 }
 
 .article-row input {
     padding: 6px 8px;
     border: 1px solid var(--border);
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 11px;
     outline: none;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.btn-add-more {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-remove-row {
+    background: #ef4444;
+    color: white;
+    border: none;
+    padding: 6px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    cursor: pointer;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.btn-remove-row:hover {
+    background: #dc2626;
+}
+
+/* Inputs auto resize according to available space */
+.article-row .item-article {
+    flex: 2;
+    min-width: 0; /* Box sizing overflow වැළැක්වීමට */
+}
+
+.article-row .item-color {
+    flex: 1.5;
+    min-width: 0;
+}
+
+.article-row .item-qty {
+    flex: 1;
+    min-width: 0;
+}
+
+.article-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 8px;
+    align-items: center;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .article-row input:focus {
