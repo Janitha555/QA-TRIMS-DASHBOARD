@@ -78,27 +78,27 @@ function updateUserUI(name, photo) {
     document.getElementById('nav-avatar').src = photo || DEFAULT_AVATAR;
 }
 
-// Facebook Link එක හරහා Profile Picture එක Update කිරීම
-async function setFacebookProfilePicture() {
-    const fbLink = prompt("Paste your public facebook profile link (Eg: https://www.facebook.com/zuck):");
-    if (!fbLink) return;
+// Profile Picture එක Link එකක් හරහා Update කිරීම
+async function setProfilePicture() {
+    const photoUrl = prompt("කරුණාකර ඔබේ Profile Picture එකෙහි Image Direct Link එක ඇතුලත් කරන්න (ImgBB, Direct Image URL, etc.):");
+    if (!photoUrl) return;
 
     try {
-        let username = fbLink.trim().replace(/\/$/, "").split('/').pop();
+        const trimmedUrl = photoUrl.trim();
 
-        if (!username) {
-            alert("❌ බාල Facebook Link එකකි!");
+        // Valid Link එකක්දැයි පරීක්ෂා කිරීම
+        if (!trimmedUrl.startsWith('http://') && !trimmedUrl.startsWith('https://')) {
+            alert("❌ නිවැරදි Image Link (URL) එකක් ඇතුලත් කරන්න!");
             return;
         }
 
-        const fbPhotoUrl = `https://graph.facebook.com/${username}/picture?type=large`;
-
+        // Database එකේ Save කිරීම
         await rtdb.ref('users/' + currentUser.uid).update({
-            photoURL: fbPhotoUrl
+            photoURL: trimmedUrl
         });
 
-        document.getElementById('nav-avatar').src = fbPhotoUrl;
-        alert("✅ Facebook Profile Picture එක සාර්ථකව Update විය!");
+        document.getElementById('nav-avatar').src = trimmedUrl;
+        alert("✅ Profile Picture එක සාර්ථකව Update විය!");
 
     } catch (error) {
         alert("❌ Error: " + error.message);
