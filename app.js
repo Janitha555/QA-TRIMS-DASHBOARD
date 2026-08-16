@@ -275,6 +275,7 @@ function updateStatus(key, newStatus, recordOwnerId) {
 }
 
 // Load Data: Default එකේදී තමන්ගේ Data විතරක් පෙන්වන අතර, Search කළ විට පමණක් වෙනත් Users ලාගේ Data පෙන්වයි.
+// Load Data: Default view එකේදී 20% සහ 100% දෙකේම තමන්ගේ Data පමණක් පෙන්වන අතර, Search කළ විට පමණක් වෙනත් අයට අයත් Data පෙන්වයි.
 function loadData() {
     const tbody20 = document.getElementById('tableBody20');
     const tbody100 = document.getElementById('tableBody100');
@@ -301,20 +302,20 @@ function loadData() {
             const key = childSnap.key;
             const data = childSnap.val();
 
-            // 🔒 Dynamic Data Filtering Logic:
-            if (searchQuery !== '') {
-                // Search කර ඇති විට: ඕනෑම User කෙනෙකුගේ PO/Article එකක් Search Query එකට match වේ නම් පෙන්වයි
-                const poMatch = data.poNumber && data.poNumber.toLowerCase().includes(searchQuery);
-                const articleMatch = data.articleDetails && data.articleDetails.toLowerCase().includes(searchQuery);
-                if (!poMatch && !articleMatch) return;
-            } else {
-                // Search කර නැති විට: තෝරාගත් දිනයට සහ තමන්ගේ User ID එකට අදාළ Records පමණක් පෙන්වයි
+            // 1. User Filter Logic (Search එකක් නැති විට තමන්ගේ දත්ත පමණි)
+            if (searchQuery === '') {
+                // දිනය ගැලපෙන්නේ නැත්නම් skip කරන්න
                 if (data.date !== selectedDate) return;
-                
-                // Admin ට හැර අන් අයට Default View එකේදී පෙනෙන්නේ තමන්ගේ Data පමණි
+
+                // Operator කෙනෙක් නම්, තමන්ගේ නොවන සියලුම records (20% සහ 100% දෙකම) hide කරන්න
                 if (currentUserRole !== 'admin' && data.userId !== currentUser.uid) {
                     return; 
                 }
+            } else {
+                // 2. Search Filter Logic (Search කළ විට PO හෝ Article Spec ගැලපෙන ඕනෑම අයෙකුගේ data පෙන්වයි)
+                const poMatch = data.poNumber && data.poNumber.toLowerCase().includes(searchQuery);
+                const articleMatch = data.articleDetails && data.articleDetails.toLowerCase().includes(searchQuery);
+                if (!poMatch && !articleMatch) return;
             }
 
             let badgeClass = data.status === 'OK' ? 'badge-ok' : (data.status === 'HOLD' ? 'badge-hold' : 'badge-reject');
@@ -336,7 +337,7 @@ function loadData() {
                 }
             }
 
-            // Tables එකට Data ඇතුළත් කිරීම
+            // Tables එකට Data ඇතුළත් කිරීම (100% සහ 20% වෙන් වෙන්ව)
             if (data.checkType === '100%') {
                 tbody100.innerHTML += `
                     <tr>
