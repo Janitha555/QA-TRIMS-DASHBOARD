@@ -11,49 +11,267 @@
     --danger: #ef4444;
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
-body { background-color: var(--bg-main); color: var(--text-main); min-height: 100vh; }
+* { 
+    box-sizing: border-box; 
+    margin: 0; 
+    padding: 0; 
+    font-family: 'Segoe UI', system-ui, sans-serif; 
+}
 
-#auth-screen { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 20px; }
-.login-card { background: white; padding: 40px; border-radius: 16px; width: 100%; max-width: 400px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); text-align: center; }
+body { 
+    background-color: var(--bg-main); 
+    color: var(--text-main); 
+    min-height: 100vh; 
+}
 
-#app-screen { display: none; padding: 20px; }
-.container { max-width: 100%; margin: 0 auto; width: 100%; }
+/* Authentication Screen */
+#auth-screen { 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    min-height: 100vh; 
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); 
+    padding: 20px; 
+}
 
-.navbar { display: flex; justify-content: space-between; align-items: center; background: var(--primary); color: white; padding: 15px 25px; border-radius: 12px; margin-bottom: 20px; }
-.user-nav-profile { display: flex; align-items: center; gap: 12px; }
-.avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent); }
+.login-card { 
+    background: white; 
+    padding: 40px; 
+    border-radius: 16px; 
+    width: 100%; 
+    max-width: 400px; 
+    box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); 
+    text-align: center; 
+}
 
-.brand-banner { display: flex; justify-content: center; background: white; border: 1px solid var(--border); padding: 12px; border-radius: 12px; margin-bottom: 20px; }
-.brand-logo { max-height: 50px; width: auto; }
+/* Main Dashboard App Screen */
+#app-screen { 
+    display: none; 
+    padding: 20px; 
+}
 
-.admin-panel { background: #eff6ff; border: 2px solid #2563eb; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
-.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-.grid-main { display: grid; grid-template-columns: 320px 1fr; gap: 20px; }
+.container { 
+    max-width: 100%; 
+    margin: 0 auto; 
+    width: 100%; 
+}
 
-.card { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+/* Navigation & Header */
+.navbar { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    background: var(--primary); 
+    color: white; 
+    padding: 15px 25px; 
+    border-radius: 12px; 
+    margin-bottom: 20px; 
+}
 
-.form-group { margin-bottom: 12px; text-align: left; }
-.form-group label { display: block; margin-bottom: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--primary-light); }
-.form-group input, .form-group select { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; outline: none; }
+.user-nav-profile { 
+    display: flex; 
+    align-items: center; 
+    gap: 12px; 
+}
 
-.btn { display: inline-flex; align-items: center; justify-content: center; padding: 8px 14px; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; gap: 6px; }
+.avatar { 
+    width: 36px; 
+    height: 36px; 
+    border-radius: 50%; 
+    object-fit: cover; 
+    border: 2px solid var(--accent); 
+}
+
+.brand-banner { 
+    display: flex; 
+    justify-content: center; 
+    background: white; 
+    border: 1px solid var(--border); 
+    padding: 12px; 
+    border-radius: 12px; 
+    margin-bottom: 20px; 
+}
+
+.brand-logo { 
+    max-height: 50px; 
+    width: auto; 
+}
+
+/* Admin Dashboard Panel */
+.admin-panel { 
+    background: #eff6ff; 
+    border: 2px solid #2563eb; 
+    border-radius: 12px; 
+    padding: 20px; 
+    margin-bottom: 20px; 
+}
+
+.grid-2 { 
+    display: grid; 
+    grid-template-columns: 1fr 1fr; 
+    gap: 20px; 
+}
+
+/* Grid Layout for Form & Tables */
+.grid-main { 
+    display: grid; 
+    grid-template-columns: 340px 1fr; 
+    gap: 20px; 
+}
+
+.card { 
+    background: white; 
+    border: 1px solid var(--border); 
+    border-radius: 12px; 
+    padding: 20px; 
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05); 
+}
+
+/* Form Styles */
+.form-group { 
+    margin-bottom: 12px; 
+    text-align: left; 
+}
+
+.form-group label { 
+    display: block; 
+    margin-bottom: 4px; 
+    font-size: 11px; 
+    font-weight: 700; 
+    text-transform: uppercase; 
+    color: var(--primary-light); 
+}
+
+.form-group input, 
+.form-group select { 
+    width: 100%; 
+    padding: 8px 10px; 
+    border: 1px solid var(--border); 
+    border-radius: 6px; 
+    font-size: 13px; 
+    outline: none; 
+    transition: border 0.2s;
+}
+
+.form-group input:focus, 
+.form-group select:focus {
+    border-color: var(--accent);
+}
+
+/* ✨ Dynamic Article Rows Custom Styling (New UI Adjustments) */
+#dynamic-article-container {
+    background: #f8fafc;
+    border: 1px dashed var(--border);
+    padding: 10px;
+    border-radius: 8px;
+}
+
+.article-row input {
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 12px;
+    outline: none;
+}
+
+.article-row input:focus {
+    border-color: var(--accent);
+}
+
+/* Dynamic Add/Remove Buttons */
+.article-row button {
+    transition: background 0.2s;
+}
+
+.article-row button:hover {
+    background: #dc2626 !important;
+}
+
+/* Button Styles */
+.btn { 
+    display: inline-flex; 
+    align-items: center; 
+    justify-content: center; 
+    padding: 8px 14px; 
+    border: none; 
+    border-radius: 6px; 
+    font-size: 13px; 
+    font-weight: 600; 
+    cursor: pointer; 
+    gap: 6px; 
+    transition: opacity 0.2s;
+}
+
+.btn:hover {
+    opacity: 0.9;
+}
+
 .btn-primary { background: var(--accent); color: white; width: 100%; }
 .btn-success { background: var(--success); color: white; }
 .btn-danger { background: var(--danger); color: white; }
 .btn-secondary { background: #475569; color: white; }
 
-.table-title { font-size: 14px; margin-bottom: 8px; color: var(--primary); font-weight: 700; border-bottom: 2px solid var(--accent); padding-bottom: 4px; display: inline-block; }
-.table-responsive { background: white; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
-table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; }
-th { background: #f1f5f9; color: var(--primary); padding: 10px; border-bottom: 2px solid var(--border); font-weight: 700; }
-td { padding: 9px 10px; border-bottom: 1px solid var(--border); }
+/* Data Tables & Badges */
+.table-title { 
+    font-size: 14px; 
+    margin-bottom: 8px; 
+    color: var(--primary); 
+    font-weight: 700; 
+    border-bottom: 2px solid var(--accent); 
+    padding-bottom: 4px; 
+    display: inline-block; 
+}
 
-.badge { padding: 3px 6px; font-size: 10px; font-weight: 700; border-radius: 4px; text-transform: uppercase; }
+.table-responsive { 
+    background: white; 
+    border: 1px solid var(--border); 
+    border-radius: 8px; 
+    overflow-x: auto; 
+}
+
+table { 
+    width: 100%; 
+    border-collapse: collapse; 
+    font-size: 12px; 
+    text-align: left; 
+}
+
+th { 
+    background: #f1f5f9; 
+    color: var(--primary); 
+    padding: 10px; 
+    border-bottom: 2px solid var(--border); 
+    font-weight: 700; 
+}
+
+td { 
+    padding: 9px 10px; 
+    border-bottom: 1px solid var(--border); 
+}
+
+.badge { 
+    padding: 3px 6px; 
+    font-size: 10px; 
+    font-weight: 700; 
+    border-radius: 4px; 
+    text-transform: uppercase; 
+    display: inline-block;
+}
+
 .badge-ok { background: #d1fae5; color: #065f46; }
 .badge-hold { background: #fef3c7; color: #92400e; }
 .badge-reject { background: #fee2e2; color: #991b1b; }
 .badge-role { background: #e0e7ff; color: #3730a3; }
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 1024px) {
+    .grid-main {
+        grid-template-columns: 1fr;
+    }
+    .grid-2 {
+        grid-template-columns: 1fr;
+    }
+}
 
 /* 🖨️ PDF PRINT SETUP (Full Sheet Auto Stretch) */
 @media print {
