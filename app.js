@@ -1,8 +1,10 @@
 let currentUser = null;
 let currentUserRole = "operator";
 
+// Default Date එක Today ලෙස සැකසීම
 document.getElementById('filterDate').value = new Date().toISOString().split('T')[0];
 
+// Firebase Auth State Listener
 auth.onAuthStateChanged((user) => {
     if (user) {
         currentUser = user;
@@ -44,6 +46,7 @@ auth.onAuthStateChanged((user) => {
     }
 });
 
+// Login Handler
 function handleLogin(e) {
     e.preventDefault();
     const userInput = document.getElementById('login-email').value.trim();
@@ -58,33 +61,75 @@ function handleLogin(e) {
         .catch(() => errDiv.innerText = "Error: Invalid Credentials");
 }
 
+// Logout Handler
 function handleLogout() {
     auth.signOut();
 }
 
+// User UI updates (Navbar)
 function updateUserUI(name, photo) {
     document.getElementById('nav-username').innerText = name || "User";
     document.getElementById('nav-role').innerText = currentUserRole;
     if (photo) document.getElementById('nav-avatar').src = photo;
 }
 
+// ✨ Register New User Function (Admin එකෙන් අලුත් Users ලා එකතු කිරීම)
+async function handleCreateUser(e) {
+    e.preventDefault();
+    
+    const name = document.getElementById('new-user-name').value.trim();
+    const userInput = document.getElementById('new-user-email').value.trim();
+    const pass = document.getElementById('new-user-pass').value;
+
+    const email = userInput.includes('@') ? userInput : `${userInput}@trims.com`;
+
+    try {
+        // Secondary app එකක් හරහා Admin Logout වීම වළක්වා ගනිමින් අලුත් User සෑදීම
+        let secondaryApp = firebase.apps.length > 1 ? firebase.apps[1] : firebase.initializeApp(firebaseConfig, "SecondaryApp");
+
+        const userCredential = await secondaryApp.auth().createUserWithEmailAndPassword(email, pass);
+        const newUser = userCredential.user;
+
+        // Database එකේ user details save කිරීම
+        await rtdb.ref('users/' + newUser.uid).set({
+            name: name,
+            email: email,
+            role: 'operator',
+            createdAt: firebase.database.ServerValue.TIMESTAMP
+        });
+
+        // Secondary session එක ක්ලියර් කිරීම
+        await secondaryApp.auth().signOut();
+
+        alert(`✅ Operator "${name}" සාර්ථකව එකතු කරන ලදී!`);
+        
+        e.target.reset();
+        loadSystemUsers();
+
+    } catch (error) {
+        console.error("Error creating user:", error);
+        alert("❌ Error Registering User: " + error.message);
+    }
+}
+
+// System Users ලැයිස්තුව Load කිරීම
 function loadSystemUsers() {
     const select = document.getElementById('master-user-select');
     const userListUI = document.getElementById('users-list');
-    select.innerHTML = `<option value="ALL">Show All Users Data</option>`;
-    userListUI.innerHTML = '';
+    
+    if (select) select.innerHTML = `<option value="ALL">Show All Users Data</option>`;
+    if (userListUI) userListUI.innerHTML = '';
 
     rtdb.ref('users').once('value').then((snapshot) => {
         snapshot.forEach((childSnap) => {
             const uid = childSnap.key;
             const data = childSnap.val();
-            select.innerHTML += `<option value="${uid}">${data.name || 'User'} (${data.email || 'No Email'})</option>`;
-            userListUI.innerHTML += `<li style="padding: 3px 0; border-bottom: 1px solid #f1f5f9;">👤 <strong>${data.name || 'User'}</strong> - <span class="badge badge-role">${data.role || 'operator'}</span></li>`;
+            if (select) select.innerHTML += `<option value="${uid}">${data.name || 'User'} (${data.email || 'No Email'})</option>`;
+            if (userListUI) userListUI.innerHTML += `<li style="padding: 4px 0; border-bottom: 1px solid #f1f5f9;">👤 <strong>${data.name || 'User'}</strong> - <span class="badge badge-role">${data.role || 'operator'}</span></li>`;
         });
     });
 }
 
-// Dynamic Article/Color Row Add for 20% Inspection
 // Dynamic Article/Color Row Add for 20% Inspection
 function addArticleColorRow() {
     const container = document.getElementById('article-color-rows');
@@ -109,7 +154,7 @@ function toggleCheckTypeFields() {
     if (type === '100%') {
         hundredFields.style.display = 'block';
         dynamicArticleContainer.style.display = 'none';
-        if (po !== '') checkExistingPOQty(po);
+        if (po !== '' && typeof checkExistingPOQty === "function") checkExistingPOQty(po);
     } else {
         hundredFields.style.display = 'none';
         dynamicArticleContainer.style.display = 'block';
@@ -199,11 +244,13 @@ async function handleSaveRecord(e) {
 
     alert("Inspection Entry Saved Successfully!");
     e.target.reset();
+    
+    // Reset Dynamic Rows
     document.getElementById('article-color-rows').innerHTML = `
-        <div class="article-row" style="display: flex; gap: 8px; margin-bottom: 8px;">
-            <input type="text" class="item-article" placeholder="Article Specs" style="flex:2;" required>
-            <input type="text" class="item-color" placeholder="Color" style="flex:1.5;" required>
-            <input type="number" class="item-qty" placeholder="Qty" style="flex:1;" required>
+        <div class="article-row">
+            <input type="text" class="item-article" placeholder="Article Specs" required>
+            <input type="text" class="item-color" placeholder="Color" required>
+            <input type="number" class="item-qty" placeholder="Qty" required>
         </div>
     `;
     toggleCheckTypeFields();
@@ -237,7 +284,8 @@ function loadData() {
     tbody100.innerHTML = '<tr><td colspan="10">Loading...</td></tr>';
     
     const selectedDate = document.getElementById('filterDate').value;
-    document.getElementById('pdf-date-header').innerText = `Date: ${selectedDate}`;
+    const headerDateElem = document.getElementById('pdf-date-header');
+    if (headerDateElem) headerDateElem.innerText = `Date: ${selectedDate}`;
 
     rtdb.ref('inspection_logs').once('value').then((snapshot) => {
         tbody20.innerHTML = '';
