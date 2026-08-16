@@ -4,18 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trims QA Enterprise Portal</title>
-    
-    <!-- Separate External CSS -->
     <link rel="stylesheet" href="style.css">
-
-    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 </head>
 <body>
 
-    <!-- LOGIN SCREEN -->
     <div id="auth-screen">
         <div class="login-card">
             <h2>Trims QA Portal</h2>
@@ -35,7 +30,6 @@
         </div>
     </div>
 
-    <!-- MAIN APP SCREEN -->
     <div id="app-screen">
         <div class="container">
             
@@ -43,10 +37,8 @@
                 <img class="brand-logo" src="92806_2.jpg" alt="STAR - A Komar company">
             </div>
 
-            <!-- Navbar -->
-            <div class="navbar">
+            <div class="navbar no-print">
                 <div style="font-size: 18px; font-weight: 600;">QA Operations Dashboard</div>
-                
                 <div style="display: flex; align-items: center; gap: 15px;">
                     <div class="user-nav-profile">
                         <img id="nav-avatar" class="avatar" src="https://via.placeholder.com/150" alt="Profile">
@@ -55,16 +47,13 @@
                             <span id="nav-role" style="font-size: 10px; color: #94a3b8; text-transform: uppercase;">Operator</span>
                         </div>
                     </div>
-                    <button class="btn btn-danger no-print" onclick="handleLogout()" style="padding: 6px 12px; font-size: 11px;">Logout</button>
+                    <button class="btn btn-danger" onclick="handleLogout()" style="padding: 6px 12px; font-size: 11px;">Logout</button>
                 </div>
             </div>
 
-            <!-- 👑 MASTER DASHBOARD PANEL -->
             <div id="master-admin-panel" class="admin-panel no-print" style="display: none;">
                 <h3 style="margin-bottom: 15px; color: var(--primary);">👑 Master Dashboard Control</h3>
-                
                 <div class="grid-2">
-                    <!-- Register New Operator -->
                     <div class="card">
                         <h4 style="font-size: 13px; margin-bottom: 10px;">Register New Operator</h4>
                         <form onsubmit="handleCreateUser(event)">
@@ -82,20 +71,17 @@
                             </div>
                             <button type="submit" class="btn btn-success">Register Operator</button>
                         </form>
-                        <div id="reg-msg" style="font-size: 11px; margin-top: 5px;"></div>
                     </div>
 
-                    <!-- User Filter & Management -->
                     <div class="card">
                         <h4 style="font-size: 13px; margin-bottom: 10px;">Filter PO Logs By Registered User</h4>
                         <div class="form-group">
-                            <label>Select User to View Sheet:</label>
                             <select id="master-user-select" onchange="loadData()">
                                 <option value="ALL">Show All Users Data</option>
                             </select>
                         </div>
-                        <h4 style="font-size: 12px; margin-top: 15px; margin-bottom: 5px;">Registered System Users List:</h4>
-                        <div style="max-height: 120px; overflow-y: auto; border: 1px solid var(--border); border-radius: 6px; padding: 5px;">
+                        <h4 style="font-size: 12px; margin-top: 15px;">Registered Users:</h4>
+                        <div style="max-height: 100px; overflow-y: auto; border: 1px solid var(--border); border-radius: 6px; padding: 5px;">
                             <ul id="users-list" style="list-style: none; font-size: 12px;"></ul>
                         </div>
                     </div>
@@ -108,21 +94,45 @@
                     <h3 style="font-size: 14px; text-transform: uppercase; margin-bottom: 15px; border-left: 3px solid var(--accent); padding-left: 8px;">Log Inspection Record</h3>
                     <form onsubmit="handleSaveRecord(event)">
                         <div class="form-group">
-                            <label>PO Number</label>
-                            <input type="text" id="poNumber" required placeholder="PO-XXXX">
+                            <label>Inspection Type</label>
+                            <select id="checkType" onchange="toggleCheckTypeFields()">
+                                <option value="20%">20% Inspection</option>
+                                <option value="100%">100% Inspection</option>
+                            </select>
                         </div>
+
+                        <div class="form-group">
+                            <label>PO Number</label>
+                            <input type="text" id="poNumber" required placeholder="PO-XXXX" onkeyUp="toggleCheckTypeFields()">
+                            <small id="po-calc-info" style="color:red; font-size:10px;"></small>
+                        </div>
+
                         <div class="form-group">
                             <label>Article Specs</label>
                             <input type="text" id="articleDetails" required placeholder="Details">
                         </div>
+
                         <div class="form-group">
                             <label>Color</label>
                             <input type="text" id="color" required placeholder="Color">
                         </div>
-                        <div class="form-group">
-                            <label>Total Batch Qty</label>
-                            <input type="number" id="totalQty" required placeholder="0">
+
+                        <!-- 100% Dynamic Calculated Fields -->
+                        <div id="hundred-percent-fields" style="display: none; background: #f8fafc; padding: 10px; border-radius: 6px; border: 1px dashed var(--accent); margin-bottom: 10px;">
+                            <div class="form-group">
+                                <label>Full PO Quantity</label>
+                                <input type="number" id="totalQty" placeholder="Total Batch Qty">
+                            </div>
+                            <div class="form-group">
+                                <label>Today Inspected Qty</label>
+                                <input type="number" id="dailyInspectedQty" placeholder="Qty checked today">
+                            </div>
+                            <div class="form-group">
+                                <label>Today Delivered to Stores Qty</label>
+                                <input type="number" id="dailyStoresQty" placeholder="Qty sent to stores today">
+                            </div>
                         </div>
+
                         <div class="form-group">
                             <label>Inspection Status</label>
                             <select id="status">
@@ -131,34 +141,59 @@
                                 <option value="REJECT">REJECT</option>
                             </select>
                         </div>
-                        <button type="submit" class="btn btn-primary">Save Entry</button>
+
+                        <button type="submit" class="btn btn-primary">Save Inspection Entry</button>
                     </form>
                 </div>
 
-                <!-- Inspection Logs Sheet Display -->
-                <div>
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;" class="no-print">
-                        <div style="display: flex; gap: 10px; align-items: center;">
-                            <label style="font-size: 12px; font-weight: 600;">Select Date:</label>
-                            <input type="date" id="filterDate" onchange="loadData()" style="padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border);">
+                <!-- Inspection Display Sheet (PDF Ready) -->
+                <div class="print-area">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <div>
+                            <h2 style="font-size: 18px;">TRIMS QUALITY ASSURANCE REPORT</h2>
+                            <p id="pdf-date-header" style="font-weight: bold; font-size: 13px; color: var(--text-muted);"></p>
                         </div>
-                        <button class="btn btn-secondary" onclick="window.print()">Print PDF Report</button>
+                        <div class="no-print" style="display: flex; gap: 10px; align-items: center;">
+                            <input type="date" id="filterDate" onchange="loadData()" style="padding: 6px; border-radius: 6px; border: 1px solid var(--border);">
+                            <button class="btn btn-secondary" onclick="window.print()">Print PDF Report</button>
+                        </div>
                     </div>
 
+                    <!-- 20% Inspection Table -->
+                    <h4 class="table-title">📌 20% Inspection Summary Sheet</h4>
+                    <div class="table-responsive" style="margin-bottom: 25px;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>PO Number</th>
+                                    <th>Article Specs</th>
+                                    <th>Color</th>
+                                    <th>Batch Qty</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody20"></tbody>
+                        </table>
+                    </div>
+
+                    <!-- 100% Inspection Table -->
+                    <h4 class="table-title">📌 100% Inspection Tracking Sheet</h4>
                     <div class="table-responsive">
                         <table>
                             <thead>
                                 <tr>
-                                    <th>Logged By (User)</th>
-                                    <th>Date / Time</th>
                                     <th>PO Number</th>
                                     <th>Article Specs</th>
                                     <th>Color</th>
-                                    <th>Qty</th>
+                                    <th>Full Qty</th>
+                                    <th>Today Checked</th>
+                                    <th>Total Inspected</th>
+                                    <th>Remaining Qty</th>
+                                    <th>Stores Delivered (Today/Total)</th>
                                     <th>Status</th>
                                 </tr>
                             </thead>
-                            <tbody id="tableBody"></tbody>
+                            <tbody id="tableBody100"></tbody>
                         </table>
                     </div>
                 </div>
@@ -167,7 +202,6 @@
         </div>
     </div>
 
-    <!-- Separate External JS Files (In Order) -->
     <script src="firebase-config.js"></script>
     <script src="app.js"></script>
 </body>
