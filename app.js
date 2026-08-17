@@ -242,6 +242,7 @@ function handleImageUpload(event) {
 // ==========================================
 
 // Dynamic Article/Color Row Add for 20% Inspection
+// Dynamic Article/Color Row Add for 20% Inspection
 function addArticleColorRow() {
     const container = document.getElementById('article-color-rows');
     if (!container) return;
@@ -249,13 +250,146 @@ function addArticleColorRow() {
     const newRow = document.createElement('div');
     newRow.className = 'article-row';
     newRow.innerHTML = `
-        <input type="text" class="item-article" placeholder="Article Specs" required>
-        <input type="text" class="item-color" placeholder="Color" required>
-        <input type="number" class="item-qty" placeholder="Qty" required>
+        <input type="text" class="item-article" placeholder="Article Specs">
+        <input type="text" class="item-color" placeholder="Color">
+        <input type="number" class="item-qty" placeholder="Qty">
         <button type="button" class="btn-remove-row" onclick="this.parentElement.remove()">✕</button>
     `;
     container.appendChild(newRow);
 }
+
+// Save Entry Handler
+async function handleSaveRecord(e) {
+    e.preventDefault();
+    if (!currentUser) {
+        alert("❌ User session expired. Please login again.");
+        return;
+    }
+
+    const poNumber = document.getElementById('poNumber') ? document.getElementById('poNumber').value.trim() : '';
+    const checkType = document.getElementById('checkType') ? document.getElementById('checkType').value : '20%';
+    const status = document.getElementById('status') ? document.getElementById('status').value : 'OK';
+    const date = document.getElementById('filterDate') ? document.getElementById('filterDate').value : '';
+
+    if (!poNumber) {
+        alert("❌ කරුණාකර PO Number එක ඇතුළත් කරන්න.");
+        return;
+    }
+
+    let userName = currentUser.email || 'User';
+    try {
+        const userSnap = await rtdb.ref('users/' + currentUser.uid).once('value');
+        if (userSnap.exists() && userSnap.val().name) userName = userSnap.val().name;
+    } catch (e) {
+        console.warn("User fetch error:", e);
+    }
+
+    const formattedUserName = currentUserRole === 'admin' ? `${userName} (Admin)` : userName;
+
+    if (checkType === '20%') {
+        const articleInputs = document.querySelectorAll('.item-article');
+        const colorInputs = document.querySelectorAll('.item-color');
+        const qtyInputs = document.querySelectorAll('.item-qty');
+
+        const savePromises = [];
+
+        for (let i = 0; i < articleInputs.length; i++) {
+            const articleDetails = articleInputs[i].value.trim();
+            const color = colorInputs[i].value.trim();
+            const totalQty = Number(qtyInputs[i].value) || 0;
+
+            if (articleDetails && color && totalQty > 0) {
+                const newLogRef = rtdb.ref('inspection_logs').push();
+                const promise = newLogRef.set({
+                    userId: currentUser.uid,
+                    userName: formattedUserName,
+                    poNumber,
+                    articleDetails,
+                    color,
+                    checkType,
+                    totalQty,
+                    status,
+                    date,
+                    loggedAt: firebase.database.ServerValue.TIMESTAMP
+                });
+                savePromises.push(promise);
+            }
+        }
+
+        if (savePromises.length === 0) {
+            alert("❌ කරුණාකර අවම වශයෙන් එක Article Details, Color සහ Qty එකක්වත් ඇතුළත් කරන්න.");
+            return;
+        }
+
+        await Promise.all(savePromises);
+
+    } else {
+        // 🔴 100% Inspection Save Logic
+        let totalQty = Number(document.getElementById('totalQty')?.value) || 0;
+        let dailyInspectedQty = Number(document.getElementById('dailyInspectedQty')?.value) || 0;
+        let dailyStoresQty = Number(document.getElementById('dailyStoresQty')?.value) || 0;
+        const articleDetails = document.getElementById('singleArticleDetails')?.value.trim() || '';
+        const color = document.getElementById('singleColor')?.value.trim() || '';
+
+        if (!articleDetails || !color) {
+            alert("❌ කරුණාකර 100% Inspection සඳහා Article Specs සහ Color ඇතුළත් කරන්න.");
+            return;
+        }
+
+        let accumInspected = 0;
+        let accumStored = 0;
+
+        const snap = await rtdb.ref('inspection_logs').orderByChild('poNumber').equalTo(poNumber).once('value');
+        
+        snap.forEach(child => {
+            const d = child.val();
+            if (d.checkType === '100%') {
+                if (d.totalQty && totalQty === 0) totalQty = Number(d.totalQty);
+                accumInspected += Number(d.dailyInspectedQty || 0);
+                accumStored += Number(d.dailyStoresQty || 0);
+            }
+        });
+
+        accumInspected += dailyInspectedQty;
+        accumStored += dailyStoresQty;
+
+        const newLogRef = rtdb.ref('inspection_logs').push();
+        await newLogRef.set({
+            userId: currentUser.uid,
+            userName: formattedUserName,
+            poNumber,
+            articleDetails,
+            color,
+            checkType,
+            totalQty,
+            dailyInspectedQty,
+            dailyStoresQty,
+            accumInspected,
+            accumStored,
+            remainingQty: totalQty - accumInspected,
+            status,
+            date,
+            loggedAt: firebase.database.ServerValue.TIMESTAMP
+        });
+    }
+
+    alert("✅ Inspection Entry Saved Successfully!");
+    e.target.reset();
+
+    const articleRows = document.getElementById('article-color-rows');
+    if (articleRows) {
+        articleRows.innerHTML = `
+            <div class="article-row">
+                <input type="text" class="item-article" placeholder="Article Specs">
+                <input type="text" class="item-color" placeholder="Color">
+                <input type="number" class="item-qty" placeholder="Qty">
+            </div>
+        `;
+    }
+    toggleCheckTypeFields();
+    loadData();
+}
+
 
 // 100% / 20% Type Change Listener
 function toggleCheckTypeFields() {
