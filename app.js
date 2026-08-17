@@ -78,7 +78,6 @@ function updateUserUI(name, photo) {
     if (navUsername) navUsername.innerText = name || "User";
     if (navRole) navRole.innerText = currentUserRole.toUpperCase();
 
-    // Photo එකක් නැත්නම් GitHub profile.png එක පෙන්වයි
     if (navAvatar) navAvatar.src = photo || DEFAULT_AVATAR;
 }
 
@@ -242,7 +241,6 @@ function handleImageUpload(event) {
 // ==========================================
 
 // Dynamic Article/Color Row Add for 20% Inspection
-// Dynamic Article/Color Row Add for 20% Inspection
 function addArticleColorRow() {
     const container = document.getElementById('article-color-rows');
     if (!container) return;
@@ -256,6 +254,63 @@ function addArticleColorRow() {
         <button type="button" class="btn-remove-row" onclick="this.parentElement.remove()">✕</button>
     `;
     container.appendChild(newRow);
+}
+
+// 100% / 20% Type Change Listener
+function toggleCheckTypeFields() {
+    const checkTypeElem = document.getElementById('checkType');
+    if (!checkTypeElem) return;
+
+    const type = checkTypeElem.value;
+    const poElem = document.getElementById('poNumber');
+    const po = poElem ? poElem.value.trim() : '';
+
+    setElementDisplay('hundred-percent-fields', type === '100%' ? 'block' : 'none');
+    setElementDisplay('dynamic-article-container', type === '20%' ? 'block' : 'none');
+
+    // 100% තෝරාගෙන ඇති විට PO Number එකක් තිබේ නම් Database එකෙන් Data Auto-fill කිරීම
+    if (type === '100%' && po !== '') {
+        checkExistingPOQty(po);
+    }
+}
+
+// 🔄 Same PO Logic for 100% Inspection
+async function checkExistingPOQty(po) {
+    if (!po) return;
+
+    try {
+        const snap = await rtdb.ref('inspection_logs').orderByChild('poNumber').equalTo(po).once('value');
+        
+        let existingTotalQty = null;
+        let existingArticle = '';
+        let existingColor = '';
+
+        snap.forEach(child => {
+            const d = child.val();
+            if (d.checkType === '100%') {
+                if (d.totalQty) existingTotalQty = d.totalQty;
+                if (d.articleDetails) existingArticle = d.articleDetails;
+                if (d.color) existingColor = d.color;
+            }
+        });
+
+        const totalQtyInput = document.getElementById('totalQty');
+        const articleInput = document.getElementById('singleArticleDetails');
+        const colorInput = document.getElementById('singleColor');
+
+        if (existingTotalQty !== null && totalQtyInput) {
+            totalQtyInput.value = existingTotalQty;
+        }
+        if (existingArticle && articleInput) {
+            articleInput.value = existingArticle;
+        }
+        if (existingColor && colorInput) {
+            colorInput.value = existingColor;
+        }
+
+    } catch (err) {
+        console.error("Error checking existing PO:", err);
+    }
 }
 
 // Save Entry Handler
@@ -324,7 +379,7 @@ async function handleSaveRecord(e) {
         await Promise.all(savePromises);
 
     } else {
-        // 🔴 100% Inspection Save Logic
+        // 🔴 100% Inspection Save & Same PO Logic
         let totalQty = Number(document.getElementById('totalQty')?.value) || 0;
         let dailyInspectedQty = Number(document.getElementById('dailyInspectedQty')?.value) || 0;
         let dailyStoresQty = Number(document.getElementById('dailyStoresQty')?.value) || 0;
@@ -339,138 +394,7 @@ async function handleSaveRecord(e) {
         let accumInspected = 0;
         let accumStored = 0;
 
-        const snap = await rtdb.ref('inspection_logs').orderByChild('poNumber').equalTo(poNumber).once('value');
-        
-        snap.forEach(child => {
-            const d = child.val();
-            if (d.checkType === '100%') {
-                if (d.totalQty && totalQty === 0) totalQty = Number(d.totalQty);
-                accumInspected += Number(d.dailyInspectedQty || 0);
-                accumStored += Number(d.dailyStoresQty || 0);
-            }
-        });
-
-        accumInspected += dailyInspectedQty;
-        accumStored += dailyStoresQty;
-
-        const newLogRef = rtdb.ref('inspection_logs').push();
-        await newLogRef.set({
-            userId: currentUser.uid,
-            userName: formattedUserName,
-            poNumber,
-            articleDetails,
-            color,
-            checkType,
-            totalQty,
-            dailyInspectedQty,
-            dailyStoresQty,
-            accumInspected,
-            accumStored,
-            remainingQty: totalQty - accumInspected,
-            status,
-            date,
-            loggedAt: firebase.database.ServerValue.TIMESTAMP
-        });
-    }
-
-    alert("✅ Inspection Entry Saved Successfully!");
-    e.target.reset();
-
-    const articleRows = document.getElementById('article-color-rows');
-    if (articleRows) {
-        articleRows.innerHTML = `
-            <div class="article-row">
-                <input type="text" class="item-article" placeholder="Article Specs">
-                <input type="text" class="item-color" placeholder="Color">
-                <input type="number" class="item-qty" placeholder="Qty">
-            </div>
-        `;
-    }
-    toggleCheckTypeFields();
-    loadData();
-}
-
-
-// 100% / 20% Type Change Listener
-function toggleCheckTypeFields() {
-    const checkTypeElem = document.getElementById('checkType');
-    if (!checkTypeElem) return;
-
-    const type = checkTypeElem.value;
-    const poElem = document.getElementById('poNumber');
-    const po = poElem ? poElem.value.trim() : '';
-
-    setElementDisplay('hundred-percent-fields', type === '100%' ? 'block' : 'none');
-    setElementDisplay('dynamic-article-container', type === '20%' ? 'block' : 'none');
-
-    if (type === '100%' && po !== '' && typeof checkExistingPOQty === "function") {
-        checkExistingPOQty(po);
-    }
-}
-
-// Save Entry Handler
-async function handleSaveRecord(e) {
-    e.preventDefault();
-    if (!currentUser) {
-        alert("❌ User session expired. Please login again.");
-        return;
-    }
-
-    const poNumber = document.getElementById('poNumber') ? document.getElementById('poNumber').value.trim() : '';
-    const checkType = document.getElementById('checkType') ? document.getElementById('checkType').value : '20%';
-    const status = document.getElementById('status') ? document.getElementById('status').value : 'OK';
-    const date = document.getElementById('filterDate') ? document.getElementById('filterDate').value : '';
-
-    let userName = currentUser.email || 'User';
-    try {
-        const userSnap = await rtdb.ref('users/' + currentUser.uid).once('value');
-        if (userSnap.exists() && userSnap.val().name) userName = userSnap.val().name;
-    } catch (e) {
-        console.warn("User fetch error:", e);
-    }
-
-    const formattedUserName = currentUserRole === 'admin' ? `${userName} (Admin)` : userName;
-
-    if (checkType === '20%') {
-        const articleInputs = document.querySelectorAll('.item-article');
-        const colorInputs = document.querySelectorAll('.item-color');
-        const qtyInputs = document.querySelectorAll('.item-qty');
-
-        const savePromises = [];
-
-        for (let i = 0; i < articleInputs.length; i++) {
-            const articleDetails = articleInputs[i].value.trim();
-            const color = colorInputs[i].value.trim();
-            const totalQty = Number(qtyInputs[i].value) || 0;
-
-            const newLogRef = rtdb.ref('inspection_logs').push();
-            const promise = newLogRef.set({
-                userId: currentUser.uid,
-                userName: formattedUserName,
-                poNumber,
-                articleDetails,
-                color,
-                checkType,
-                totalQty,
-                status,
-                date,
-                loggedAt: firebase.database.ServerValue.TIMESTAMP
-            });
-            savePromises.push(promise);
-        }
-
-        await Promise.all(savePromises);
-
-    } else {
-        let totalQty = Number(document.getElementById('totalQty')?.value) || 0;
-        let dailyInspectedQty = Number(document.getElementById('dailyInspectedQty')?.value) || 0;
-        let dailyStoresQty = Number(document.getElementById('dailyStoresQty')?.value) || 0;
-        const articleDetails = document.getElementById('singleArticleDetails')?.value.trim() || '';
-        const color = document.getElementById('singleColor')?.value.trim() || '';
-
-        let accumInspected = 0;
-        let accumStored = 0;
-
+        // එකම PO එකට අදාළව පැරණි Records Accumulate කිරීම
         const snap = await rtdb.ref('inspection_logs').orderByChild('poNumber').equalTo(poNumber).once('value');
         
         snap.forEach(child => {
@@ -512,9 +436,9 @@ async function handleSaveRecord(e) {
     if (articleRows) {
         articleRows.innerHTML = `
             <div class="article-row">
-                <input type="text" class="item-article" placeholder="Article Specs" required>
-                <input type="text" class="item-color" placeholder="Color" required>
-                <input type="number" class="item-qty" placeholder="Qty" required>
+                <input type="text" class="item-article" placeholder="Article Specs">
+                <input type="text" class="item-color" placeholder="Color">
+                <input type="number" class="item-qty" placeholder="Qty">
             </div>
         `;
     }
@@ -639,3 +563,4 @@ function loadData() {
         if (tbody100) tbody100.innerHTML = '<tr><td colspan="10" style="text-align:center; color:red;">Error loading data</td></tr>';
     }); 
 }
+
