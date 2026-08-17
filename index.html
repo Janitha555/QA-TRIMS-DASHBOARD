@@ -34,7 +34,7 @@
     </div>
 
     <!-- Main Dashboard Screen -->
-    <div id="app-screen" style="display: none;"> <!-- JS එකෙන් login වූ පසු පෙන්වීමට display:none යෙදිය හැක -->
+    <div id="app-screen" style="display: none;">
         <div class="container">
             
             <div class="brand-banner">
@@ -46,10 +46,8 @@
                 <div style="display: flex; align-items: center; gap: 15px;">
                     <div class="user-nav-profile" style="display: flex; align-items: center; gap: 10px;">
                         
-                        <!-- Hidden File Input for Avatar Selection -->
                         <input type="file" id="avatar-file-input" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
                         
-                        <!-- Profile Avatar Image (Default Image Link Fixed) -->
                         <img id="nav-avatar" class="avatar" 
                              src="https://ui-avatars.com/api/?name=User&background=random" 
                              alt="Profile" 
@@ -130,9 +128,9 @@
                             </div>
                             <div id="article-color-rows">
                                 <div class="article-row">
-                                    <input type="text" class="item-article" placeholder="Article Specs" required>
-                                    <input type="text" class="item-color" placeholder="Color" required>
-                                    <input type="number" class="item-qty" placeholder="Qty" required>
+                                    <input type="text" class="item-article" placeholder="Article Specs">
+                                    <input type="text" class="item-color" placeholder="Color">
+                                    <input type="number" class="item-qty" placeholder="Qty">
                                 </div>
                             </div>
                         </div>
@@ -182,7 +180,6 @@
                             <p id="pdf-date-header" style="font-weight: bold; font-size: 13px; color: var(--text-muted, #64748b);"></p>
                         </div>
                         
-                        <!-- Search & Print Actions -->
                         <div class="no-print" style="display: flex; gap: 10px; align-items: center;">
                             <input type="text" id="searchPO" onkeyup="loadData()" placeholder="🔍 Search PO / Article..." style="padding: 6px 10px; border-radius: 6px; border: 1px solid var(--accent, #3b82f6); font-size:12px; width:200px;">
                             <input type="date" id="filterDate" onchange="loadData()" style="padding: 6px; border-radius: 6px; border: 1px solid var(--border, #cbd5e1);">
@@ -240,3 +237,4 @@
     <script src="app.js"></script>
 </body>
 </html>
+
