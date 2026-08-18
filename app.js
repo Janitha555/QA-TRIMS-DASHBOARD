@@ -4,8 +4,10 @@
 let currentUser = null;
 let currentUserRole = "operator";
 
+// 🔴 GitHub Profile Default Avatar URL
 const DEFAULT_AVATAR = "https://raw.githubusercontent.com/Janitha555/QA-TRIMS-DASHBOARD/main/profile.png";
 
+// Default Date එක Today ලෙස සැකසීම
 if (document.getElementById('filterDate')) {
     document.getElementById('filterDate').value = new Date().toISOString().split('T')[0];
 }
@@ -247,7 +249,7 @@ function addArticleColorRow() {
     container.appendChild(newRow);
 }
 
-// Trim Category (Thread vs General) Control Logic
+// 🆕 Trim Category (General vs Thread) Field Control
 function toggleTrimCategoryFields() {
     const category = document.getElementById('trimCategory')?.value || 'General';
 
@@ -277,7 +279,7 @@ function toggleCheckTypeFields() {
     const po = poElem ? poElem.value.trim() : '';
 
     setElementDisplay('hundred-percent-fields', type === '100%' ? 'block' : 'none');
-    
+
     if (trimCategory === 'Thread') {
         setElementDisplay('dynamic-article-container', 'none');
     } else {
@@ -289,7 +291,7 @@ function toggleCheckTypeFields() {
     }
 }
 
-// 🔄 Auto-fill Logic for 100% Inspection
+// Same PO Auto-fill Logic
 async function checkExistingPOQty(po) {
     if (!po) return;
 
@@ -322,7 +324,7 @@ async function checkExistingPOQty(po) {
     }
 }
 
-// Save Entry Handler (10% Inspection / Thread / 100% Inspection)
+// Save Entry Handler
 async function handleSaveRecord(e) {
     e.preventDefault();
     if (!currentUser) {
@@ -347,7 +349,7 @@ async function handleSaveRecord(e) {
 
     const formattedUserName = currentUserRole === 'admin' ? `${userName} (Admin)` : userName;
 
-    // 🧵 1. THREAD CATEGORY SAVE LOGIC
+    // 🧵 1. THREAD SAVE LOGIC
     if (trimCategory === 'Thread') {
         const shade = document.getElementById('threadShade')?.value.trim() || '';
         const coneQty = Number(document.getElementById('threadConeQty')?.value) || 0;
@@ -372,7 +374,7 @@ async function handleSaveRecord(e) {
         });
 
     } 
-    // 📌 2. GENERAL TRIMS - 10% INSPECTION LOGIC
+    // 📌 2. GENERAL TRIMS - 10% INSPECTION
     else if (checkType === '10%') {
         if (!poNumber) {
             alert("❌ කරුණාකර PO Number එක ඇතුළත් කරන්න.");
@@ -399,7 +401,7 @@ async function handleSaveRecord(e) {
                     poNumber,
                     articleDetails,
                     color,
-                    checkType,
+                    checkType: '10%',
                     totalQty,
                     status,
                     date,
@@ -491,7 +493,7 @@ async function handleSaveRecord(e) {
     loadData();
 }
 
-// Ownership Control & Status Updates
+// Update Record Status
 function updateStatus(key, newStatus, recordOwnerId) {
     if (currentUserRole !== 'admin' && currentUser.uid !== recordOwnerId) {
         alert("🔒 Access Denied: You can only view this record. Only the user who created it can edit it.");
@@ -510,7 +512,7 @@ function updateStatus(key, newStatus, recordOwnerId) {
     }
 }
 
-// Load Data Function (Renders Tables)
+// Load Data Function
 function loadData() {
     const tbody20 = document.getElementById('tableBody20');
     const tbody100 = document.getElementById('tableBody100');
@@ -585,7 +587,6 @@ function loadData() {
                     </tr>
                 `;
             } else {
-                // 10% Inspection Table Output
                 if (data.trimCategory === 'Thread') {
                     html10 += `
                         <tr>
@@ -621,4 +622,3 @@ function loadData() {
         if (tbody100) tbody100.innerHTML = '<tr><td colspan="10" style="text-align:center; color:red;">Error loading data</td></tr>';
     }); 
 }
-
