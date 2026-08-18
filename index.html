@@ -6,14 +6,12 @@
     <title>Trims QA Enterprise Portal</title>
     <link rel="stylesheet" href="style.css">
     
-    <!-- Firebase Compat SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 </head>
 <body>
 
-    <!-- Authentication Screen -->
     <div id="auth-screen">
         <div class="login-card">
             <h2>Trims QA Portal</h2>
@@ -33,7 +31,6 @@
         </div>
     </div>
 
-    <!-- Main Dashboard Screen -->
     <div id="app-screen" style="display: none;">
         <div class="container">
             
@@ -64,7 +61,6 @@
                 </div>
             </div>
 
-            <!-- Master Admin Controls -->
             <div id="master-admin-panel" class="admin-panel no-print" style="display: none;">
                 <h3 style="margin-bottom: 15px; color: var(--primary, #0f172a);">👑 Master Dashboard Control</h3>
                 <div class="grid-2">
@@ -103,24 +99,41 @@
             </div>
 
             <div class="grid-main">
-                <!-- Data Entry Form -->
                 <div class="card no-print">
                     <h3 style="font-size: 14px; text-transform: uppercase; margin-bottom: 15px; border-left: 3px solid var(--accent, #3b82f6); padding-left: 8px;">Log Inspection Record</h3>
                     <form onsubmit="handleSaveRecord(event)">
                         <div class="form-group">
                             <label>Inspection Type</label>
                             <select id="checkType" onchange="toggleCheckTypeFields()">
-                                <option value="20%">20% Inspection</option>
+                                <option value="10%">10% Inspection</option>
                                 <option value="100%">100% Inspection</option>
                             </select>
                         </div>
 
                         <div class="form-group">
-                            <label>PO Number</label>
-                            <input type="text" id="poNumber" required placeholder="PO-XXXX" onkeyup="toggleCheckTypeFields()">
+                            <label>Trim Category</label>
+                            <select id="trimCategory" onchange="toggleTrimCategoryFields()">
+                                <option value="General">General Trims</option>
+                                <option value="Thread">Thread</option>
+                            </select>
                         </div>
 
-                        <!-- Dynamic Multi Article/Color Section for 20% -->
+                        <div class="form-group" id="po-container">
+                            <label>PO Number</label>
+                            <input type="text" id="poNumber" placeholder="PO-XXXX" onkeyup="toggleCheckTypeFields()">
+                        </div>
+
+                        <div id="thread-fields" style="display: none; background: #f1f5f9; padding: 10px; border-radius: 6px; border: 1px dashed #64748b; margin-bottom: 12px;">
+                            <div class="form-group">
+                                <label>Shade</label>
+                                <input type="text" id="threadShade" placeholder="Enter Shade Name/Code">
+                            </div>
+                            <div class="form-group">
+                                <label>Inspected Cone Qty</label>
+                                <input type="number" id="threadConeQty" placeholder="Cone Quantity Checked">
+                            </div>
+                        </div>
+
                         <div id="dynamic-article-container" style="margin-bottom: 12px;">
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                                 <label style="font-size:11px; font-weight:700; color:var(--primary-light, #334155);">ARTICLES & COLORS LIST</label>
@@ -135,7 +148,6 @@
                             </div>
                         </div>
 
-                        <!-- Fields for 100% Inspection -->
                         <div id="hundred-percent-fields" style="display: none; background: #f8fafc; padding: 10px; border-radius: 6px; border: 1px dashed var(--accent, #3b82f6); margin-bottom: 10px;">
                             <div class="form-group">
                                 <label>Article Specs</label>
@@ -172,7 +184,6 @@
                     </form>
                 </div>
 
-                <!-- Inspection Display Sheet & Search -->
                 <div class="print-area">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                         <div>
@@ -187,15 +198,14 @@
                         </div>
                     </div>
 
-                    <!-- 20% Table -->
                     <h4 class="table-title">📌 10% Inspection Summary Sheet</h4>
                     <div class="table-responsive" style="margin-bottom: 25px;">
                         <table>
                             <thead>
                                 <tr>
-                                    <th>PO Number</th>
-                                    <th>Article Specs</th>
-                                    <th>Color</th>
+                                    <th>PO / Category</th>
+                                    <th>Article / Shade</th>
+                                    <th>Color / Cone Qty</th>
                                     <th>Batch Qty</th>
                                     <th>Logged By</th>
                                     <th>Status</th>
@@ -205,7 +215,6 @@
                         </table>
                     </div>
 
-                    <!-- 100% Table -->
                     <h4 class="table-title">📌 100% Inspection Tracking Sheet</h4>
                     <div class="table-responsive">
                         <table>
@@ -232,7 +241,6 @@
         </div>
     </div>
 
-    <!-- Firebase Config & App Logic -->
     <script src="firebase-config.js"></script>
     <script src="app.js"></script>
 </body>
