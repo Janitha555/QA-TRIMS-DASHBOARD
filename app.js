@@ -4,10 +4,8 @@
 let currentUser = null;
 let currentUserRole = "operator";
 
-// 🔴 GitHub Profile Default Avatar URL
 const DEFAULT_AVATAR = "https://raw.githubusercontent.com/Janitha555/QA-TRIMS-DASHBOARD/main/profile.png";
 
-// Default Date එක Today ලෙස සැකසීම
 if (document.getElementById('filterDate')) {
     document.getElementById('filterDate').value = new Date().toISOString().split('T')[0];
 }
@@ -63,13 +61,11 @@ auth.onAuthStateChanged((user) => {
 // Helper Functions
 // ==========================================
 
-// Safely set DOM element display
 function setElementDisplay(id, displayType) {
     const el = document.getElementById(id);
     if (el) el.style.display = displayType;
 }
 
-// Update User UI (Navbar details)
 function updateUserUI(name, photo) {
     const navUsername = document.getElementById('nav-username');
     const navRole = document.getElementById('nav-role');
@@ -85,7 +81,6 @@ function updateUserUI(name, photo) {
 // Authentication Handlers
 // ==========================================
 
-// Login Handler
 function handleLogin(e) {
     e.preventDefault();
     const userInput = document.getElementById('login-email').value.trim();
@@ -105,12 +100,10 @@ function handleLogin(e) {
         });
 }
 
-// Logout Handler
 function handleLogout() {
     auth.signOut();
 }
 
-// Register New User Function (Admin only)
 async function handleCreateUser(e) {
     e.preventDefault();
 
@@ -153,7 +146,6 @@ async function handleCreateUser(e) {
     }
 }
 
-// System Users ලැයිස්තුව Load කිරීම
 function loadSystemUsers() {
     const select = document.getElementById('master-user-select');
     const userListUI = document.getElementById('users-list');
@@ -175,7 +167,7 @@ function loadSystemUsers() {
 }
 
 // ==========================================
-// Profile Image Handling & Compression
+// Profile Image Handling
 // ==========================================
 
 function handleImageUpload(event) {
@@ -237,10 +229,9 @@ function handleImageUpload(event) {
 }
 
 // ==========================================
-// Form Mechanics & Inspection Management
+// Form Mechanics & Field Controls
 // ==========================================
 
-// Dynamic Article/Color Row Add for 20% Inspection
 function addArticleColorRow() {
     const container = document.getElementById('article-color-rows');
     if (!container) return;
@@ -256,25 +247,49 @@ function addArticleColorRow() {
     container.appendChild(newRow);
 }
 
-// 100% / 20% Type Change Listener
+// Trim Category (Thread vs General) Control Logic
+function toggleTrimCategoryFields() {
+    const category = document.getElementById('trimCategory')?.value || 'General';
+
+    if (category === 'Thread') {
+        setElementDisplay('po-container', 'none');
+        setElementDisplay('thread-fields', 'block');
+        setElementDisplay('dynamic-article-container', 'none');
+    } else {
+        setElementDisplay('po-container', 'block');
+        setElementDisplay('thread-fields', 'none');
+        
+        const checkType = document.getElementById('checkType')?.value || '10%';
+        if (checkType === '10%') {
+            setElementDisplay('dynamic-article-container', 'block');
+        }
+    }
+}
+
+// 100% / 10% Type Change Listener
 function toggleCheckTypeFields() {
     const checkTypeElem = document.getElementById('checkType');
     if (!checkTypeElem) return;
 
     const type = checkTypeElem.value;
+    const trimCategory = document.getElementById('trimCategory')?.value || 'General';
     const poElem = document.getElementById('poNumber');
     const po = poElem ? poElem.value.trim() : '';
 
     setElementDisplay('hundred-percent-fields', type === '100%' ? 'block' : 'none');
-    setElementDisplay('dynamic-article-container', type === '20%' ? 'block' : 'none');
+    
+    if (trimCategory === 'Thread') {
+        setElementDisplay('dynamic-article-container', 'none');
+    } else {
+        setElementDisplay('dynamic-article-container', type === '10%' ? 'block' : 'none');
+    }
 
-    // 100% තෝරාගෙන ඇති විට PO Number එකක් තිබේ නම් Database එකෙන් Data Auto-fill කිරීම
     if (type === '100%' && po !== '') {
         checkExistingPOQty(po);
     }
 }
 
-// 🔄 Same PO Logic for 100% Inspection
+// 🔄 Auto-fill Logic for 100% Inspection
 async function checkExistingPOQty(po) {
     if (!po) return;
 
@@ -298,22 +313,16 @@ async function checkExistingPOQty(po) {
         const articleInput = document.getElementById('singleArticleDetails');
         const colorInput = document.getElementById('singleColor');
 
-        if (existingTotalQty !== null && totalQtyInput) {
-            totalQtyInput.value = existingTotalQty;
-        }
-        if (existingArticle && articleInput) {
-            articleInput.value = existingArticle;
-        }
-        if (existingColor && colorInput) {
-            colorInput.value = existingColor;
-        }
+        if (existingTotalQty !== null && totalQtyInput) totalQtyInput.value = existingTotalQty;
+        if (existingArticle && articleInput) articleInput.value = existingArticle;
+        if (existingColor && colorInput) colorInput.value = existingColor;
 
     } catch (err) {
         console.error("Error checking existing PO:", err);
     }
 }
 
-// Save Entry Handler
+// Save Entry Handler (10% Inspection / Thread / 100% Inspection)
 async function handleSaveRecord(e) {
     e.preventDefault();
     if (!currentUser) {
@@ -321,15 +330,12 @@ async function handleSaveRecord(e) {
         return;
     }
 
-    const poNumber = document.getElementById('poNumber') ? document.getElementById('poNumber').value.trim() : '';
-    const checkType = document.getElementById('checkType') ? document.getElementById('checkType').value : '20%';
+    const checkType = document.getElementById('checkType') ? document.getElementById('checkType').value : '10%';
+    const trimCategory = document.getElementById('trimCategory') ? document.getElementById('trimCategory').value : 'General';
     const status = document.getElementById('status') ? document.getElementById('status').value : 'OK';
     const date = document.getElementById('filterDate') ? document.getElementById('filterDate').value : '';
 
-    if (!poNumber) {
-        alert("❌ කරුණාකර PO Number එක ඇතුළත් කරන්න.");
-        return;
-    }
+    let poNumber = document.getElementById('poNumber') ? document.getElementById('poNumber').value.trim() : '';
 
     let userName = currentUser.email || 'User';
     try {
@@ -341,7 +347,38 @@ async function handleSaveRecord(e) {
 
     const formattedUserName = currentUserRole === 'admin' ? `${userName} (Admin)` : userName;
 
-    if (checkType === '20%') {
+    // 🧵 1. THREAD CATEGORY SAVE LOGIC
+    if (trimCategory === 'Thread') {
+        const shade = document.getElementById('threadShade')?.value.trim() || '';
+        const coneQty = Number(document.getElementById('threadConeQty')?.value) || 0;
+
+        if (!shade || coneQty <= 0) {
+            alert("❌ කරුණාකර Thread එක සඳහා Shade එක සහ Cone Quantity එක ඇතුළත් කරන්න.");
+            return;
+        }
+
+        const newLogRef = rtdb.ref('inspection_logs').push();
+        await newLogRef.set({
+            userId: currentUser.uid,
+            userName: formattedUserName,
+            trimCategory: 'Thread',
+            poNumber: 'N/A (Thread)',
+            shade: shade,
+            coneQty: coneQty,
+            checkType: checkType,
+            status: status,
+            date: date,
+            loggedAt: firebase.database.ServerValue.TIMESTAMP
+        });
+
+    } 
+    // 📌 2. GENERAL TRIMS - 10% INSPECTION LOGIC
+    else if (checkType === '10%') {
+        if (!poNumber) {
+            alert("❌ කරුණාකර PO Number එක ඇතුළත් කරන්න.");
+            return;
+        }
+
         const articleInputs = document.querySelectorAll('.item-article');
         const colorInputs = document.querySelectorAll('.item-color');
         const qtyInputs = document.querySelectorAll('.item-qty');
@@ -358,6 +395,7 @@ async function handleSaveRecord(e) {
                 const promise = newLogRef.set({
                     userId: currentUser.uid,
                     userName: formattedUserName,
+                    trimCategory: 'General',
                     poNumber,
                     articleDetails,
                     color,
@@ -378,8 +416,14 @@ async function handleSaveRecord(e) {
 
         await Promise.all(savePromises);
 
-    } else {
-        // 🔴 100% Inspection Save & Same PO Logic
+    } 
+    // 💯 3. 100% INSPECTION LOGIC
+    else {
+        if (!poNumber) {
+            alert("❌ කරුණාකර PO Number එක ඇතුළත් කරන්න.");
+            return;
+        }
+
         let totalQty = Number(document.getElementById('totalQty')?.value) || 0;
         let dailyInspectedQty = Number(document.getElementById('dailyInspectedQty')?.value) || 0;
         let dailyStoresQty = Number(document.getElementById('dailyStoresQty')?.value) || 0;
@@ -394,7 +438,6 @@ async function handleSaveRecord(e) {
         let accumInspected = 0;
         let accumStored = 0;
 
-        // එකම PO එකට අදාළව පැරණි Records Accumulate කිරීම
         const snap = await rtdb.ref('inspection_logs').orderByChild('poNumber').equalTo(poNumber).once('value');
         
         snap.forEach(child => {
@@ -413,6 +456,7 @@ async function handleSaveRecord(e) {
         await newLogRef.set({
             userId: currentUser.uid,
             userName: formattedUserName,
+            trimCategory: 'General',
             poNumber,
             articleDetails,
             color,
@@ -442,6 +486,7 @@ async function handleSaveRecord(e) {
             </div>
         `;
     }
+    toggleTrimCategoryFields();
     toggleCheckTypeFields();
     loadData();
 }
@@ -480,7 +525,7 @@ function loadData() {
     if (headerDateElem) headerDateElem.innerText = `Date: ${selectedDate}`;
 
     rtdb.ref('inspection_logs').once('value').then((snapshot) => {
-        let html20 = '';
+        let html10 = '';
         let html100 = '';
 
         if (!snapshot.exists()) {
@@ -493,7 +538,6 @@ function loadData() {
             const key = childSnap.key;
             const data = childSnap.val();
 
-            // Search Query Filter Logic
             if (searchQuery === '') {
                 if (data.date !== selectedDate) return;
 
@@ -503,11 +547,11 @@ function loadData() {
             } else {
                 const poMatch = data.poNumber && data.poNumber.toLowerCase().includes(searchQuery);
                 const articleMatch = data.articleDetails && data.articleDetails.toLowerCase().includes(searchQuery);
-                if (!poMatch && !articleMatch) return;
+                const shadeMatch = data.shade && data.shade.toLowerCase().includes(searchQuery);
+                if (!poMatch && !articleMatch && !shadeMatch) return;
             }
 
             let badgeClass = data.status === 'OK' ? 'badge-ok' : (data.status === 'HOLD' ? 'badge-hold' : 'badge-reject');
-            
             const isOwner = (currentUser && currentUser.uid === data.userId) || (currentUserRole === 'admin');
 
             let statusCell = `<span class="badge ${badgeClass}">${data.status}</span>`;
@@ -541,20 +585,34 @@ function loadData() {
                     </tr>
                 `;
             } else {
-                html20 += `
-                    <tr>
-                        <td><strong>${data.poNumber || ''}</strong></td>
-                        <td>${data.articleDetails || ''}</td>
-                        <td>${data.color || ''}</td>
-                        <td>${data.totalQty || 0}</td>
-                        <td><small style="color:#64748b;">${data.userName || 'User'}</small></td>
-                        <td>${statusCell}</td>
-                    </tr>
-                `;
+                // 10% Inspection Table Output
+                if (data.trimCategory === 'Thread') {
+                    html10 += `
+                        <tr>
+                            <td><strong>🧵 Thread</strong></td>
+                            <td>Shade: ${data.shade || 'N/A'}</td>
+                            <td>Cone Qty: ${data.coneQty || 0}</td>
+                            <td>-</td>
+                            <td><small style="color:#64748b;">${data.userName || 'User'}</small></td>
+                            <td>${statusCell}</td>
+                        </tr>
+                    `;
+                } else {
+                    html10 += `
+                        <tr>
+                            <td><strong>${data.poNumber || ''}</strong></td>
+                            <td>${data.articleDetails || ''}</td>
+                            <td>${data.color || ''}</td>
+                            <td>${data.totalQty || 0}</td>
+                            <td><small style="color:#64748b;">${data.userName || 'User'}</small></td>
+                            <td>${statusCell}</td>
+                        </tr>
+                    `;
+                }
             }
         });
 
-        if (tbody20) tbody20.innerHTML = html20 || '<tr><td colspan="6" style="text-align:center;">No 20% records found.</td></tr>';
+        if (tbody20) tbody20.innerHTML = html10 || '<tr><td colspan="6" style="text-align:center;">No 10% records found.</td></tr>';
         if (tbody100) tbody100.innerHTML = html100 || '<tr><td colspan="10" style="text-align:center;">No 100% records found.</td></tr>';
 
     }).catch((err) => {
