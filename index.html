@@ -135,7 +135,7 @@
                         <!-- 3. General Trim PO Field -->
                         <div class="form-group" id="po-container">
                             <label>PO Number</label>
-                            <input type="text" id="poNumber" placeholder="PO-XXXX" onkeyup="toggleCheckTypeFields()">
+                            <input type="text" id="poNumber" placeholder="PO-XXXX">
                         </div>
 
                         <!-- 4. Thread Specific Fields -->
@@ -150,42 +150,35 @@
                             </div>
                         </div>
 
-                        <!-- Dynamic Multi Article/Color Section for 10% -->
-                        <div id="dynamic-article-container" style="margin-bottom: 12px;">
+                        <!-- Dynamic Multi Article/Color Section for 10% Inspection -->
+                        <div id="dynamic-article-container-10" style="margin-bottom: 12px;">
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                                <label style="font-size:11px; font-weight:700; color:var(--primary-light, #334155);">ARTICLES & COLORS LIST</label>
-                                <button type="button" onclick="addArticleColorRow()" class="btn-add-more">+ Add Article/Color</button>
+                                <label style="font-size:11px; font-weight:700; color:var(--primary-light, #334155);">ARTICLES & COLORS LIST (10%)</label>
+                                <button type="button" onclick="addArticleColorRow('10%')" class="btn-add-more">+ Add Row</button>
                             </div>
-                            <div id="article-color-rows">
+                            <div id="article-color-rows-10">
                                 <div class="article-row">
-                                    <input type="text" class="item-article" placeholder="Article Specs">
-                                    <input type="text" class="item-color" placeholder="Color">
-                                    <input type="number" class="item-qty" placeholder="Qty">
+                                    <input type="text" class="item-article-10" placeholder="Article Specs">
+                                    <input type="text" class="item-color-10" placeholder="Color">
+                                    <input type="number" class="item-qty-10" placeholder="Qty">
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Fields for 100% Inspection -->
-                        <div id="hundred-percent-fields" style="display: none; background: #f8fafc; padding: 10px; border-radius: 6px; border: 1px dashed var(--accent, #3b82f6); margin-bottom: 10px;">
-                            <div class="form-group">
-                                <label>Article Specs</label>
-                                <input type="text" id="singleArticleDetails" placeholder="Article Specs">
+                        <!-- Dynamic Multi Article/Color Section for 100% Inspection -->
+                        <div id="dynamic-article-container-100" style="display: none; margin-bottom: 12px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                                <label style="font-size:11px; font-weight:700; color:var(--primary-light, #334155);">ARTICLES & QUANTITIES (100%)</label>
+                                <button type="button" onclick="addArticleColorRow('100%')" class="btn-add-more">+ Add Row</button>
                             </div>
-                            <div class="form-group">
-                                <label>Color</label>
-                                <input type="text" id="singleColor" placeholder="Color">
-                            </div>
-                            <div class="form-group">
-                                <label>Full PO Quantity</label>
-                                <input type="number" id="totalQty" placeholder="Total Batch Qty">
-                            </div>
-                            <div class="form-group">
-                                <label>Today Inspected Qty</label>
-                                <input type="number" id="dailyInspectedQty" placeholder="Qty checked today">
-                            </div>
-                            <div class="form-group">
-                                <label>Today Delivered to Stores Qty</label>
-                                <input type="number" id="dailyStoresQty" placeholder="Qty sent to stores today">
+                            <div id="article-color-rows-100">
+                                <div class="article-row-100" style="display: flex; gap: 5px; margin-bottom: 8px;">
+                                    <input type="text" class="item-article-100" placeholder="Article Specs" style="flex:1;">
+                                    <input type="text" class="item-color-100" placeholder="Color" style="flex:1;">
+                                    <input type="number" class="item-fullqty-100" placeholder="Full Qty" style="flex:1;">
+                                    <input type="number" class="item-chkqty-100" placeholder="Checked" style="flex:1;">
+                                    <input type="number" class="item-storeqty-100" placeholder="Stores" style="flex:1;">
+                                </div>
                             </div>
                         </div>
 
@@ -257,6 +250,7 @@
                                     <th>Stores Delivered</th>
                                     <th>Logged By</th>
                                     <th>Status</th>
+                                    <th class="no-print">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="tableBody100"></tbody>
@@ -273,3 +267,4 @@
     <script src="app.js"></script>
 </body>
 </html>
+
