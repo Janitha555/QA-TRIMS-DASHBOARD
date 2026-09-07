@@ -139,14 +139,14 @@ async function handleCreateUser(e) {
 
         await secondaryApp.auth().signOut();
 
-        alert(`✅ Operator "${name}" සාර්ථකව එකතු කරන ලදී!`);
+        alert("Operator created successfully.");
 
         e.target.reset();
         loadSystemUsers();
 
     } catch (error) {
         console.error("Error creating user:", error);
-        alert("❌ Error Registering User: " + error.message);
+        alert("Error Registering User: " + error.message);
     }
 }
 
@@ -179,7 +179,7 @@ function handleImageUpload(event) {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-        alert("❌ කරුණාකර වලංගු Image එකක් තෝරන්න!");
+        alert("Please select a valid Image file.");
         return;
     }
 
@@ -221,9 +221,9 @@ function handleImageUpload(event) {
                 }).then(() => {
                     const navAvatar = document.getElementById('nav-avatar');
                     if (navAvatar) navAvatar.src = base64Image;
-                    alert("✅ Profile Picture එක සාර්ථකව Update විය!");
+                    alert("Profile Picture updated successfully.");
                 }).catch((err) => {
-                    alert("❌ Save Error: " + err.message);
+                    alert("Save Error: " + err.message);
                 });
             }
         };
@@ -233,22 +233,43 @@ function handleImageUpload(event) {
 }
 
 // ==========================================
-// Form Mechanics & Field Controls
+// Dynamic Form Row Handlers
 // ==========================================
 
-function addArticleColorRow() {
-    const container = document.getElementById('article-color-rows');
-    if (!container) return;
-    
-    const newRow = document.createElement('div');
-    newRow.className = 'article-row';
-    newRow.innerHTML = `
-        <input type="text" class="item-article" placeholder="Article Specs">
-        <input type="text" class="item-color" placeholder="Color">
-        <input type="number" class="item-qty" placeholder="Qty">
-        <button type="button" class="btn-remove-row" onclick="this.parentElement.remove()">✕</button>
-    `;
-    container.appendChild(newRow);
+function addArticleColorRow(type) {
+    if (type === '10%') {
+        const container = document.getElementById('article-color-rows-10');
+        if (!container) return;
+        const newRow = document.createElement('div');
+        newRow.className = 'article-row';
+        newRow.style.display = 'flex';
+        newRow.style.gap = '5px';
+        newRow.style.marginBottom = '8px';
+        newRow.innerHTML = `
+            <input type="text" class="item-article-10" placeholder="Article Specs" style="flex:1;">
+            <input type="text" class="item-color-10" placeholder="Color" style="flex:1;">
+            <input type="number" class="item-qty-10" placeholder="Qty" style="flex:1;">
+            <button type="button" class="btn-remove-row" onclick="this.parentElement.remove()">✕</button>
+        `;
+        container.appendChild(newRow);
+    } else {
+        const container = document.getElementById('article-color-rows-100');
+        if (!container) return;
+        const newRow = document.createElement('div');
+        newRow.className = 'article-row-100';
+        newRow.style.display = 'flex';
+        newRow.style.gap = '5px';
+        newRow.style.marginBottom = '8px';
+        newRow.innerHTML = `
+            <input type="text" class="item-article-100" placeholder="Article Specs" style="flex:1;">
+            <input type="text" class="item-color-100" placeholder="Color" style="flex:1;">
+            <input type="number" class="item-fullqty-100" placeholder="Full Qty" style="flex:1;">
+            <input type="number" class="item-chkqty-100" placeholder="Checked" style="flex:1;">
+            <input type="number" class="item-storeqty-100" placeholder="Stores" style="flex:1;">
+            <button type="button" class="btn-remove-row" onclick="this.parentElement.remove()">✕</button>
+        `;
+        container.appendChild(newRow);
+    }
 }
 
 function toggleTrimCategoryFields() {
@@ -257,15 +278,12 @@ function toggleTrimCategoryFields() {
     if (category === 'Thread') {
         setElementDisplay('po-container', 'none');
         setElementDisplay('thread-fields', 'block');
-        setElementDisplay('dynamic-article-container', 'none');
+        setElementDisplay('dynamic-article-container-10', 'none');
+        setElementDisplay('dynamic-article-container-100', 'none');
     } else {
         setElementDisplay('po-container', 'block');
         setElementDisplay('thread-fields', 'none');
-        
-        const checkType = document.getElementById('checkType')?.value || '10%';
-        if (checkType === '10%') {
-            setElementDisplay('dynamic-article-container', 'block');
-        }
+        toggleCheckTypeFields();
     }
 }
 
@@ -275,61 +293,32 @@ function toggleCheckTypeFields() {
 
     const type = checkTypeElem.value;
     const trimCategory = document.getElementById('trimCategory')?.value || 'General';
-    const poElem = document.getElementById('poNumber');
-    const po = poElem ? poElem.value.trim() : '';
-
-    setElementDisplay('hundred-percent-fields', type === '100%' ? 'block' : 'none');
 
     if (trimCategory === 'Thread') {
-        setElementDisplay('dynamic-article-container', 'none');
+        setElementDisplay('dynamic-article-container-10', 'none');
+        setElementDisplay('dynamic-article-container-100', 'none');
     } else {
-        setElementDisplay('dynamic-article-container', type === '10%' ? 'block' : 'none');
-    }
-
-    if (po !== '') {
-        checkExistingPOQty(po);
+        setElementDisplay('dynamic-article-container-10', type === '10%' ? 'block' : 'none');
+        setElementDisplay('dynamic-article-container-100', type === '100%' ? 'block' : 'none');
     }
 }
 
-// Search PO to Autofill existing Data
-async function checkExistingPOQty(po) {
-    if (!po) return;
+// ==========================================
+// Record Saving Logic
+// ==========================================
 
-    try {
-        const snap = await rtdb.ref('inspection_logs').orderByChild('poNumber').equalTo(po).once('value');
-        
-        snap.forEach(child => {
-            const d = child.val();
-            if (d.receivedDate) {
-                const recDateInput = document.getElementById('receivedDate');
-                if (recDateInput) recDateInput.value = d.receivedDate;
-            }
-            if (d.checkType === '100%') {
-                if (d.totalQty && document.getElementById('totalQty')) document.getElementById('totalQty').value = d.totalQty;
-                if (d.articleDetails && document.getElementById('singleArticleDetails')) document.getElementById('singleArticleDetails').value = d.articleDetails;
-                if (d.color && document.getElementById('singleColor')) document.getElementById('singleColor').value = d.color;
-            }
-        });
-    } catch (err) {
-        console.error("Error checking existing PO:", err);
-    }
-}
-
-// Save Entry Handler
 async function handleSaveRecord(e) {
     e.preventDefault();
     if (!currentUser) {
-        alert("❌ User session expired. Please login again.");
+        alert("User session expired. Please login again.");
         return;
     }
 
     const checkType = document.getElementById('checkType') ? document.getElementById('checkType').value : '10%';
     const trimCategory = document.getElementById('trimCategory') ? document.getElementById('trimCategory').value : 'General';
     const status = document.getElementById('status') ? document.getElementById('status').value : 'NON-CHECK';
-    
     const receivedDate = document.getElementById('receivedDate') ? document.getElementById('receivedDate').value : todayStr;
-    const date = document.getElementById('filterDate') ? document.getElementById('filterDate').value : todayStr;
-
+    const inspectedDate = (status === 'NON-CHECK') ? '-' : todayStr;
     let poNumber = document.getElementById('poNumber') ? document.getElementById('poNumber').value.trim() : '';
 
     let userName = currentUser.email || 'User';
@@ -342,7 +331,7 @@ async function handleSaveRecord(e) {
 
     const formattedUserName = currentUserRole === 'admin' ? `${userName} (Admin)` : userName;
 
-    // 🧵 1. THREAD SAVE LOGIC
+    // THREAD SAVE
     if (trimCategory === 'Thread') {
         const shade = document.getElementById('threadShade')?.value.trim() || '';
         const coneQty = Number(document.getElementById('threadConeQty')?.value) || 0;
@@ -358,145 +347,134 @@ async function handleSaveRecord(e) {
             checkType: checkType,
             status: status,
             receivedDate: receivedDate,
-            date: date,
+            date: inspectedDate,
             loggedAt: firebase.database.ServerValue.TIMESTAMP
         });
 
     } 
-    // 📌 2. GENERAL TRIMS - 10% INSPECTION
+    // 10% INSPECTION SAVE
     else if (checkType === '10%') {
         if (!poNumber) {
-            alert("❌ කරුණාකර PO Number එක ඇතුළත් කරන්න.");
+            alert("Please enter a PO Number.");
             return;
         }
 
-        const articleInputs = document.querySelectorAll('.item-article');
-        const colorInputs = document.querySelectorAll('.item-color');
-        const qtyInputs = document.querySelectorAll('.item-qty');
+        const articleInputs = document.querySelectorAll('.item-article-10');
+        const colorInputs = document.querySelectorAll('.item-color-10');
+        const qtyInputs = document.querySelectorAll('.item-qty-10');
 
         const savePromises = [];
 
-        // NON-CHECK Status එකක් නම් කිසිදු Article/Qty නොමැතිවද Save කිරීමට ඉඩදීම
-        if (status === 'NON-CHECK' && articleInputs[0].value.trim() === '') {
+        for (let i = 0; i < articleInputs.length; i++) {
+            const articleDetails = articleInputs[i].value.trim();
+            const color = colorInputs[i].value.trim();
+            const totalQty = Number(qtyInputs[i].value) || 0;
+
+            if (articleDetails || status === 'NON-CHECK') {
+                const newLogRef = rtdb.ref('inspection_logs').push();
+                const promise = newLogRef.set({
+                    userId: currentUser.uid,
+                    userName: formattedUserName,
+                    trimCategory: 'General',
+                    poNumber,
+                    articleDetails: articleDetails || 'Pending Inspection',
+                    color: color || '-',
+                    checkType: '10%',
+                    totalQty,
+                    status,
+                    receivedDate: receivedDate,
+                    date: inspectedDate,
+                    loggedAt: firebase.database.ServerValue.TIMESTAMP
+                });
+                savePromises.push(promise);
+            }
+        }
+        await Promise.all(savePromises);
+
+    } 
+    // 100% INSPECTION SAVE (DYNAMIC MULTI-ARTICLE)
+    else {
+        if (!poNumber) {
+            alert("Please enter a PO Number.");
+            return;
+        }
+
+        const articles100 = document.querySelectorAll('.item-article-100');
+        const colors100 = document.querySelectorAll('.item-color-100');
+        const fullQtys = document.querySelectorAll('.item-fullqty-100');
+        const chkQtys = document.querySelectorAll('.item-chkqty-100');
+        const storeQtys = document.querySelectorAll('.item-storeqty-100');
+
+        const savePromises = [];
+
+        for (let i = 0; i < articles100.length; i++) {
+            const articleDetails = articles100[i].value.trim() || 'Pending Inspection';
+            const color = colors100[i].value.trim() || '-';
+            const totalQty = Number(fullQtys[i].value) || 0;
+            const dailyInspectedQty = Number(chkQtys[i].value) || 0;
+            const dailyStoresQty = Number(storeQtys[i].value) || 0;
+
+            let accumInspected = 0;
+            let accumStored = 0;
+
+            // Existing Log Calculation per Article
+            const snap = await rtdb.ref('inspection_logs')
+                .orderByChild('poNumber')
+                .equalTo(poNumber)
+                .once('value');
+
+            snap.forEach(child => {
+                const d = child.val();
+                if (d.checkType === '100%' && d.articleDetails === articleDetails && d.color === color) {
+                    accumInspected += Number(d.dailyInspectedQty || 0);
+                    accumStored += Number(d.dailyStoresQty || 0);
+                }
+            });
+
+            accumInspected += dailyInspectedQty;
+            accumStored += dailyStoresQty;
+
             const newLogRef = rtdb.ref('inspection_logs').push();
-            await newLogRef.set({
+            const promise = newLogRef.set({
                 userId: currentUser.uid,
                 userName: formattedUserName,
                 trimCategory: 'General',
                 poNumber,
-                articleDetails: 'Pending Inspection',
-                color: '-',
-                checkType: '10%',
-                totalQty: 0,
-                status: 'NON-CHECK',
+                articleDetails,
+                color,
+                checkType: '100%',
+                totalQty,
+                dailyInspectedQty,
+                dailyStoresQty,
+                accumInspected,
+                accumStored,
+                remainingQty: totalQty - accumInspected,
+                status,
                 receivedDate: receivedDate,
-                date: date,
+                date: inspectedDate,
                 loggedAt: firebase.database.ServerValue.TIMESTAMP
             });
-        } else {
-            for (let i = 0; i < articleInputs.length; i++) {
-                const articleDetails = articleInputs[i].value.trim();
-                const color = colorInputs[i].value.trim();
-                const totalQty = Number(qtyInputs[i].value) || 0;
-
-                if (articleDetails || status === 'NON-CHECK') {
-                    const newLogRef = rtdb.ref('inspection_logs').push();
-                    const promise = newLogRef.set({
-                        userId: currentUser.uid,
-                        userName: formattedUserName,
-                        trimCategory: 'General',
-                        poNumber,
-                        articleDetails: articleDetails || 'Pending Inspection',
-                        color: color || '-',
-                        checkType: '10%',
-                        totalQty,
-                        status,
-                        receivedDate: receivedDate,
-                        date: date,
-                        loggedAt: firebase.database.ServerValue.TIMESTAMP
-                    });
-                    savePromises.push(promise);
-                }
-            }
-            await Promise.all(savePromises);
+            savePromises.push(promise);
         }
 
-    } 
-    // 💯 3. 100% INSPECTION LOGIC
-    else {
-        if (!poNumber) {
-            alert("❌ කරුණාකර PO Number එක ඇතුළත් කරන්න.");
-            return;
-        }
-
-        let totalQty = Number(document.getElementById('totalQty')?.value) || 0;
-        let dailyInspectedQty = Number(document.getElementById('dailyInspectedQty')?.value) || 0;
-        let dailyStoresQty = Number(document.getElementById('dailyStoresQty')?.value) || 0;
-        const articleDetails = document.getElementById('singleArticleDetails')?.value.trim() || 'Pending Inspection';
-        const color = document.getElementById('singleColor')?.value.trim() || '-';
-
-        let accumInspected = 0;
-        let accumStored = 0;
-
-        const snap = await rtdb.ref('inspection_logs').orderByChild('poNumber').equalTo(poNumber).once('value');
-        
-        snap.forEach(child => {
-            const d = child.val();
-            if (d.checkType === '100%') {
-                if (d.totalQty) totalQty = Number(d.totalQty);
-                accumInspected += Number(d.dailyInspectedQty || 0);
-                accumStored += Number(d.dailyStoresQty || 0);
-            }
-        });
-
-        accumInspected += dailyInspectedQty;
-        accumStored += dailyStoresQty;
-
-        const newLogRef = rtdb.ref('inspection_logs').push();
-        await newLogRef.set({
-            userId: currentUser.uid,
-            userName: formattedUserName,
-            trimCategory: 'General',
-            poNumber,
-            articleDetails,
-            color,
-            checkType,
-            totalQty,
-            dailyInspectedQty,
-            dailyStoresQty,
-            accumInspected,
-            accumStored,
-            remainingQty: totalQty - accumInspected,
-            status,
-            receivedDate: receivedDate,
-            date: date,
-            loggedAt: firebase.database.ServerValue.TIMESTAMP
-        });
+        await Promise.all(savePromises);
     }
 
-    alert("✅ Inspection Entry Saved Successfully!");
+    alert("Inspection Entry Saved Successfully!");
     e.target.reset();
 
-    const articleRows = document.getElementById('article-color-rows');
-    if (articleRows) {
-        articleRows.innerHTML = `
-            <div class="article-row">
-                <input type="text" class="item-article" placeholder="Article Specs">
-                <input type="text" class="item-color" placeholder="Color">
-                <input type="number" class="item-qty" placeholder="Qty">
-            </div>
-        `;
-    }
     document.getElementById('receivedDate').value = todayStr;
     toggleTrimCategoryFields();
-    toggleCheckTypeFields();
     loadData();
 }
 
-// Update Status Handler
+// ==========================================
+// Update & Edit Mechanics
+// ==========================================
+
 function updateStatus(key, newStatus, recordOwnerId) {
     if (currentUserRole !== 'admin' && currentUser.uid !== recordOwnerId) {
-        alert("🔒 Access Denied: You can only view this record. Only the user who created it can edit it.");
+        alert("Access Denied: You can only edit your own records.");
         return;
     }
 
@@ -505,17 +483,63 @@ function updateStatus(key, newStatus, recordOwnerId) {
     if (confirm(`Are you sure you want to change status to ${newStatus}?`)) {
         rtdb.ref('inspection_logs/' + key).update({
             status: newStatus,
-            date: currentToday // Inspection සිදු කළ දිනය සටහන් වේ
+            date: currentToday
         }).then(() => {
-            alert("✅ Status and Inspection Date Updated Successfully!");
+            alert("Status updated successfully!");
             loadData();
         }).catch((err) => {
-            alert("❌ Update Failed: " + err.message);
+            alert("Update Failed: " + err.message);
         });
     }
 }
 
-// Load Data Function
+// Any Quantities Edit Function
+function editQuantities(key, recordOwnerId, curTotal, curDaily, curStores) {
+    if (currentUserRole !== 'admin' && currentUser.uid !== recordOwnerId) {
+        alert("Access Denied: You can only edit your own records.");
+        return;
+    }
+
+    const newTotal = prompt("Update Full PO Qty:", curTotal);
+    if (newTotal === null) return;
+
+    const newDaily = prompt("Update Today Inspected Qty:", curDaily);
+    if (newDaily === null) return;
+
+    const newStores = prompt("Update Today Delivered to Stores Qty:", curStores);
+    if (newStores === null) return;
+
+    const parsedTotal = Number(newTotal) || 0;
+    const parsedDaily = Number(newDaily) || 0;
+    const parsedStores = Number(newStores) || 0;
+
+    rtdb.ref('inspection_logs/' + key).once('value').then(snapshot => {
+        const data = snapshot.val();
+        if (!data) return;
+
+        let accumInspected = (data.accumInspected - data.dailyInspectedQty) + parsedDaily;
+        let accumStored = (data.accumStored - data.dailyStoresQty) + parsedStores;
+
+        rtdb.ref('inspection_logs/' + key).update({
+            totalQty: parsedTotal,
+            dailyInspectedQty: parsedDaily,
+            dailyStoresQty: parsedStores,
+            accumInspected: accumInspected,
+            accumStored: accumStored,
+            remainingQty: parsedTotal - accumInspected
+        }).then(() => {
+            alert("Quantities updated successfully!");
+            loadData();
+        }).catch(err => {
+            alert("Update Error: " + err.message);
+        });
+    });
+}
+
+// ==========================================
+// Data Retrieval Logic
+// ==========================================
+
 function loadData() {
     const tbody20 = document.getElementById('tableBody20');
     const tbody100 = document.getElementById('tableBody100');
@@ -523,7 +547,7 @@ function loadData() {
     const searchQuery = searchElem ? searchElem.value.toLowerCase().trim() : '';
 
     if (tbody20) tbody20.innerHTML = '<tr><td colspan="8" style="text-align:center;">Loading...</td></tr>';
-    if (tbody100) tbody100.innerHTML = '<tr><td colspan="12" style="text-align:center;">Loading...</td></tr>';
+    if (tbody100) tbody100.innerHTML = '<tr><td colspan="13" style="text-align:center;">Loading...</td></tr>';
 
     const selectedDate = document.getElementById('filterDate') ? document.getElementById('filterDate').value : '';
     const headerDateElem = document.getElementById('pdf-date-header');
@@ -535,7 +559,7 @@ function loadData() {
 
         if (!snapshot.exists()) {
             if (tbody20) tbody20.innerHTML = '<tr><td colspan="8" style="text-align:center;">No entries found.</td></tr>';
-            if (tbody100) tbody100.innerHTML = '<tr><td colspan="12" style="text-align:center;">No entries found.</td></tr>';
+            if (tbody100) tbody100.innerHTML = '<tr><td colspan="13" style="text-align:center;">No entries found.</td></tr>';
             return;
         }
 
@@ -544,7 +568,10 @@ function loadData() {
             const data = childSnap.val();
 
             if (searchQuery === '') {
-                if (data.date !== selectedDate && data.receivedDate !== selectedDate) return;
+                const recDate = data.receivedDate || '';
+                const inspDate = data.date || '';
+
+                if (recDate !== selectedDate && inspDate !== selectedDate) return;
 
                 if (currentUserRole !== 'admin' && data.userId !== currentUser.uid) {
                     return; 
@@ -583,6 +610,11 @@ function loadData() {
             const inspDateDisp = (data.status === 'NON-CHECK') ? 'Pending' : (data.date || '-');
 
             if (data.checkType === '100%') {
+                let actionBtn = '-';
+                if (isOwner) {
+                    actionBtn = `<button onclick="editQuantities('${key}', '${data.userId}', ${data.totalQty || 0}, ${data.dailyInspectedQty || 0}, ${data.dailyStoresQty || 0})" style="background:#3b82f6; color:#fff; border:none; padding:3px 6px; font-size:10px; border-radius:3px; cursor:pointer;">✏️ Edit Qty</button>`;
+                }
+
                 html100 += `
                     <tr>
                         <td><strong>${data.poNumber || ''}</strong></td>
@@ -597,6 +629,7 @@ function loadData() {
                         <td>${data.dailyStoresQty || 0} (${data.accumStored || 0})</td>
                         <td><small style="color:#64748b;">${data.userName || 'User'}</small></td>
                         <td>${statusCell}</td>
+                        <td class="no-print">${actionBtn}</td>
                     </tr>
                 `;
             } else {
@@ -631,11 +664,12 @@ function loadData() {
         });
 
         if (tbody20) tbody20.innerHTML = html10 || '<tr><td colspan="8" style="text-align:center;">No 10% records found.</td></tr>';
-        if (tbody100) tbody100.innerHTML = html100 || '<tr><td colspan="12" style="text-align:center;">No 100% records found.</td></tr>';
+        if (tbody100) tbody100.innerHTML = html100 || '<tr><td colspan="13" style="text-align:center;">No 100% records found.</td></tr>';
 
     }).catch((err) => {
         console.error("Data Load Error:", err);
         if (tbody20) tbody20.innerHTML = '<tr><td colspan="8" style="text-align:center; color:red;">Error loading data</td></tr>';
-        if (tbody100) tbody100.innerHTML = '<tr><td colspan="12" style="text-align:center; color:red;">Error loading data</td></tr>';
+        if (tbody100) tbody100.innerHTML = '<tr><td colspan="13" style="text-align:center; color:red;">Error loading data</td></tr>';
     }); 
 }
+
