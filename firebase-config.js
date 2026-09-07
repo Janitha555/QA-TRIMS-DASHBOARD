@@ -1,16 +1,642 @@
-// Firebase Config with Correct Regional Database URL
-const firebaseConfig = {
-  apiKey: "AIzaSyAHU3Pf8uqhkw1WMgKIyYtFP4QhigIM1jg",
-  authDomain: "qa-trims-production.firebaseapp.com",
-  databaseURL: "https://qa-trims-production-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "qa-trims-production",
-  storageBucket: "qa-trims-production.firebasestorage.app",
-  messagingSenderId: "693190684035",
-  appId: "1:693190684035:web:5210a4134f06500a895ab6",
-  measurementId: "G-DP4EZG3PRJ"
-};
+// ==========================================
+// Global Variables & Configuration
+// ==========================================
+let currentUser = null;
+let currentUserRole = "operator";
 
-// Initialize Firebase
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const rtdb = firebase.database();
+const DEFAULT_AVATAR = "https://raw.githubusercontent.com/Janitha555/QA-TRIMS-DASHBOARD/main/profile.png";
+
+const todayStr = new Date().toISOString().split('T')[0];
+if (document.getElementById('filterDate')) {
+    document.getElementById('filterDate').value = todayStr;
+}
+if (document.getElementById('receivedDate')) {
+    document.getElementById('receivedDate').value = todayStr;
+}
+
+// ==========================================
+// Firebase Auth State Listener
+// ==========================================
+auth.onAuthStateChanged((user) => {
+    if (user) {
+        currentUser = user;
+        setElementDisplay('auth-screen', 'none');
+        setElementDisplay('app-screen', 'block');
+
+        rtdb.ref('users/' + user.uid).once('value').then((snapshot) => {
+            const userData = snapshot.val();
+
+            if ((userData && userData.role === 'admin') || (user.email && user.email.includes('admin'))) {
+                currentUserRole = 'admin';
+            } else {
+                currentUserRole = 'operator';
+            }
+
+            updateUserUI(userData ? userData.name : (user.email ? user.email.split('@')[0] : 'User'), userData ? userData.photoURL : null);
+
+            if (currentUserRole === 'admin') {
+                setElementDisplay('master-admin-panel', 'block');
+                loadSystemUsers();
+            } else {
+                setElementDisplay('master-admin-panel', 'none');
+            }
+
+            loadData();
+        }).catch((err) => {
+            console.error("Auth Data Load Error:", err);
+            if (user.email && user.email.includes('admin')) {
+                currentUserRole = 'admin';
+                setElementDisplay('master-admin-panel', 'block');
+                loadSystemUsers();
+            }
+            updateUserUI(user.email ? user.email.split('@')[0] : 'User', null);
+            loadData();
+        });
+
+    } else {
+        currentUser = null;
+        currentUserRole = "operator";
+        setElementDisplay('auth-screen', 'flex');
+        setElementDisplay('app-screen', 'none');
+    }
+});
+
+// ==========================================
+// Helper Functions
+// ==========================================
+
+function setElementDisplay(id, displayType) {
+    const el = document.getElementById(id);
+    if (el) el.style.display = displayType;
+}
+
+function updateUserUI(name, photo) {
+    const navUsername = document.getElementById('nav-username');
+    const navRole = document.getElementById('nav-role');
+    const navAvatar = document.getElementById('nav-avatar');
+
+    if (navUsername) navUsername.innerText = name || "User";
+    if (navRole) navRole.innerText = currentUserRole.toUpperCase();
+
+    if (navAvatar) navAvatar.src = photo || DEFAULT_AVATAR;
+}
+
+// ==========================================
+// Authentication Handlers
+// ==========================================
+
+function handleLogin(e) {
+    e.preventDefault();
+    const userInput = document.getElementById('login-email').value.trim();
+    const pass = document.getElementById('login-password').value;
+    const errDiv = document.getElementById('login-error');
+    if (errDiv) errDiv.innerText = 'Authenticating...';
+
+    const constructedEmail = userInput.includes('@') ? userInput : `${userInput}@trims.com`;
+
+    auth.signInWithEmailAndPassword(constructedEmail, pass)
+        .then(() => {
+            if (errDiv) errDiv.innerText = '';
+        })
+        .catch((err) => {
+            console.error("Login Error:", err);
+            if (errDiv) errDiv.innerText = "Error: Invalid Credentials";
+        });
+}
+
+function handleLogout() {
+    auth.signOut();
+}
+
+async function handleCreateUser(e) {
+    e.preventDefault();
+
+    const name = document.getElementById('new-user-name').value.trim();
+    const userInput = document.getElementById('new-user-email').value.trim();
+    const pass = document.getElementById('new-user-pass').value;
+
+    const email = userInput.includes('@') ? userInput : `${userInput}@trims.com`;
+
+    try {
+        let secondaryApp;
+        const existingApp = firebase.apps.find(app => app.name === "SecondaryApp");
+        
+        if (existingApp) {
+            secondaryApp = existingApp;
+        } else {
+            secondaryApp = firebase.initializeApp(firebaseConfig, "SecondaryApp");
+        }
+
+        const userCredential = await secondaryApp.auth().createUserWithEmailAndPassword(email, pass);
+        const newUser = userCredential.user;
+
+        await rtdb.ref('users/' + newUser.uid).set({
+            name: name,
+            email: email,
+            role: 'operator',
+            createdAt: firebase.database.ServerValue.TIMESTAMP
+        });
+
+        await secondaryApp.auth().signOut();
+
+        alert(`✅ Operator "${name}" සාර්ථකව එකතු කරන ලදී!`);
+
+        e.target.reset();
+        loadSystemUsers();
+
+    } catch (error) {
+        console.error("Error creating user:", error);
+        alert("❌ Error Registering User: " + error.message);
+    }
+}
+
+function loadSystemUsers() {
+    const select = document.getElementById('master-user-select');
+    const userListUI = document.getElementById('users-list');
+
+    let selectHTML = `<option value="ALL">Show All Users Data</option>`;
+    let listHTML = '';
+
+    rtdb.ref('users').once('value').then((snapshot) => {
+        snapshot.forEach((childSnap) => {
+            const uid = childSnap.key;
+            const data = childSnap.val();
+            selectHTML += `<option value="${uid}">${data.name || 'User'} (${data.email || 'No Email'})</option>`;
+            listHTML += `<li style="padding: 4px 0; border-bottom: 1px solid #f1f5f9;">👤 <strong>${data.name || 'User'}</strong> - <span class="badge badge-role">${data.role || 'operator'}</span></li>`;
+        });
+
+        if (select) select.innerHTML = selectHTML;
+        if (userListUI) userListUI.innerHTML = listHTML;
+    }).catch(err => console.error("Error loading system users:", err));
+}
+
+// ==========================================
+// Profile Image Handling
+// ==========================================
+
+function handleImageUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+        alert("❌ කරුණාකර වලංගු Image එකක් තෝරන්න!");
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        const img = new Image();
+        img.src = e.target.result;
+
+        img.onload = function () {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+
+            const maxWidth = 300;
+            const maxHeight = 300;
+            let width = img.width;
+            let height = img.height;
+
+            if (width > height) {
+                if (width > maxWidth) {
+                    height *= maxWidth / width;
+                    width = maxWidth;
+                }
+            } else {
+                if (height > maxHeight) {
+                    width *= maxHeight / height;
+                    height = maxHeight;
+                }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            ctx.drawImage(img, 0, 0, width, height);
+
+            const base64Image = canvas.toDataURL('image/jpeg', 0.7);
+
+            if (currentUser) {
+                rtdb.ref('users/' + currentUser.uid).update({
+                    photoURL: base64Image
+                }).then(() => {
+                    const navAvatar = document.getElementById('nav-avatar');
+                    if (navAvatar) navAvatar.src = base64Image;
+                    alert("✅ Profile Picture එක සාර්ථකව Update විය!");
+                }).catch((err) => {
+                    alert("❌ Save Error: " + err.message);
+                });
+            }
+        };
+    };
+
+    reader.readAsDataURL(file);
+}
+
+// ==========================================
+// Form Mechanics & Field Controls
+// ==========================================
+
+function addArticleColorRow() {
+    const container = document.getElementById('article-color-rows');
+    if (!container) return;
+    
+    const newRow = document.createElement('div');
+    newRow.className = 'article-row';
+    newRow.innerHTML = `
+        <input type="text" class="item-article" placeholder="Article Specs">
+        <input type="text" class="item-color" placeholder="Color">
+        <input type="number" class="item-qty" placeholder="Qty">
+        <button type="button" class="btn-remove-row" onclick="this.parentElement.remove()">✕</button>
+    `;
+    container.appendChild(newRow);
+}
+
+function toggleTrimCategoryFields() {
+    const category = document.getElementById('trimCategory')?.value || 'General';
+
+    if (category === 'Thread') {
+        setElementDisplay('po-container', 'none');
+        setElementDisplay('thread-fields', 'block');
+        setElementDisplay('dynamic-article-container', 'none');
+    } else {
+        setElementDisplay('po-container', 'block');
+        setElementDisplay('thread-fields', 'none');
+        
+        const checkType = document.getElementById('checkType')?.value || '10%';
+        if (checkType === '10%') {
+            setElementDisplay('dynamic-article-container', 'block');
+        }
+    }
+}
+
+function toggleCheckTypeFields() {
+    const checkTypeElem = document.getElementById('checkType');
+    if (!checkTypeElem) return;
+
+    const type = checkTypeElem.value;
+    const trimCategory = document.getElementById('trimCategory')?.value || 'General';
+    const poElem = document.getElementById('poNumber');
+    const po = poElem ? poElem.value.trim() : '';
+
+    setElementDisplay('hundred-percent-fields', type === '100%' ? 'block' : 'none');
+
+    if (trimCategory === 'Thread') {
+        setElementDisplay('dynamic-article-container', 'none');
+    } else {
+        setElementDisplay('dynamic-article-container', type === '10%' ? 'block' : 'none');
+    }
+
+    if (po !== '') {
+        checkExistingPOQty(po);
+    }
+}
+
+// Search PO to Autofill existing Data
+async function checkExistingPOQty(po) {
+    if (!po) return;
+
+    try {
+        const snap = await rtdb.ref('inspection_logs').orderByChild('poNumber').equalTo(po).once('value');
+        
+        snap.forEach(child => {
+            const d = child.val();
+            if (d.receivedDate) {
+                const recDateInput = document.getElementById('receivedDate');
+                if (recDateInput) recDateInput.value = d.receivedDate;
+            }
+            if (d.checkType === '100%') {
+                if (d.totalQty && document.getElementById('totalQty')) document.getElementById('totalQty').value = d.totalQty;
+                if (d.articleDetails && document.getElementById('singleArticleDetails')) document.getElementById('singleArticleDetails').value = d.articleDetails;
+                if (d.color && document.getElementById('singleColor')) document.getElementById('singleColor').value = d.color;
+            }
+        });
+    } catch (err) {
+        console.error("Error checking existing PO:", err);
+    }
+}
+
+// Save Entry Handler
+async function handleSaveRecord(e) {
+    e.preventDefault();
+    if (!currentUser) {
+        alert("❌ User session expired. Please login again.");
+        return;
+    }
+
+    const checkType = document.getElementById('checkType') ? document.getElementById('checkType').value : '10%';
+    const trimCategory = document.getElementById('trimCategory') ? document.getElementById('trimCategory').value : 'General';
+    const status = document.getElementById('status') ? document.getElementById('status').value : 'NON-CHECK';
+    
+    const receivedDate = document.getElementById('receivedDate') ? document.getElementById('receivedDate').value : todayStr;
+    const date = document.getElementById('filterDate') ? document.getElementById('filterDate').value : todayStr;
+
+    let poNumber = document.getElementById('poNumber') ? document.getElementById('poNumber').value.trim() : '';
+
+    let userName = currentUser.email || 'User';
+    try {
+        const userSnap = await rtdb.ref('users/' + currentUser.uid).once('value');
+        if (userSnap.exists() && userSnap.val().name) userName = userSnap.val().name;
+    } catch (e) {
+        console.warn("User fetch error:", e);
+    }
+
+    const formattedUserName = currentUserRole === 'admin' ? `${userName} (Admin)` : userName;
+
+    // 🧵 1. THREAD SAVE LOGIC
+    if (trimCategory === 'Thread') {
+        const shade = document.getElementById('threadShade')?.value.trim() || '';
+        const coneQty = Number(document.getElementById('threadConeQty')?.value) || 0;
+
+        const newLogRef = rtdb.ref('inspection_logs').push();
+        await newLogRef.set({
+            userId: currentUser.uid,
+            userName: formattedUserName,
+            trimCategory: 'Thread',
+            poNumber: 'N/A (Thread)',
+            shade: shade,
+            coneQty: coneQty,
+            checkType: checkType,
+            status: status,
+            receivedDate: receivedDate,
+            date: date,
+            loggedAt: firebase.database.ServerValue.TIMESTAMP
+        });
+
+    } 
+    // 📌 2. GENERAL TRIMS - 10% INSPECTION
+    else if (checkType === '10%') {
+        if (!poNumber) {
+            alert("❌ කරුණාකර PO Number එක ඇතුළත් කරන්න.");
+            return;
+        }
+
+        const articleInputs = document.querySelectorAll('.item-article');
+        const colorInputs = document.querySelectorAll('.item-color');
+        const qtyInputs = document.querySelectorAll('.item-qty');
+
+        const savePromises = [];
+
+        // NON-CHECK Status එකක් නම් කිසිදු Article/Qty නොමැතිවද Save කිරීමට ඉඩදීම
+        if (status === 'NON-CHECK' && articleInputs[0].value.trim() === '') {
+            const newLogRef = rtdb.ref('inspection_logs').push();
+            await newLogRef.set({
+                userId: currentUser.uid,
+                userName: formattedUserName,
+                trimCategory: 'General',
+                poNumber,
+                articleDetails: 'Pending Inspection',
+                color: '-',
+                checkType: '10%',
+                totalQty: 0,
+                status: 'NON-CHECK',
+                receivedDate: receivedDate,
+                date: date,
+                loggedAt: firebase.database.ServerValue.TIMESTAMP
+            });
+        } else {
+            for (let i = 0; i < articleInputs.length; i++) {
+                const articleDetails = articleInputs[i].value.trim();
+                const color = colorInputs[i].value.trim();
+                const totalQty = Number(qtyInputs[i].value) || 0;
+
+                if (articleDetails || status === 'NON-CHECK') {
+                    const newLogRef = rtdb.ref('inspection_logs').push();
+                    const promise = newLogRef.set({
+                        userId: currentUser.uid,
+                        userName: formattedUserName,
+                        trimCategory: 'General',
+                        poNumber,
+                        articleDetails: articleDetails || 'Pending Inspection',
+                        color: color || '-',
+                        checkType: '10%',
+                        totalQty,
+                        status,
+                        receivedDate: receivedDate,
+                        date: date,
+                        loggedAt: firebase.database.ServerValue.TIMESTAMP
+                    });
+                    savePromises.push(promise);
+                }
+            }
+            await Promise.all(savePromises);
+        }
+
+    } 
+    // 💯 3. 100% INSPECTION LOGIC
+    else {
+        if (!poNumber) {
+            alert("❌ කරුණාකර PO Number එක ඇතුළත් කරන්න.");
+            return;
+        }
+
+        let totalQty = Number(document.getElementById('totalQty')?.value) || 0;
+        let dailyInspectedQty = Number(document.getElementById('dailyInspectedQty')?.value) || 0;
+        let dailyStoresQty = Number(document.getElementById('dailyStoresQty')?.value) || 0;
+        const articleDetails = document.getElementById('singleArticleDetails')?.value.trim() || 'Pending Inspection';
+        const color = document.getElementById('singleColor')?.value.trim() || '-';
+
+        let accumInspected = 0;
+        let accumStored = 0;
+
+        const snap = await rtdb.ref('inspection_logs').orderByChild('poNumber').equalTo(poNumber).once('value');
+        
+        snap.forEach(child => {
+            const d = child.val();
+            if (d.checkType === '100%') {
+                if (d.totalQty) totalQty = Number(d.totalQty);
+                accumInspected += Number(d.dailyInspectedQty || 0);
+                accumStored += Number(d.dailyStoresQty || 0);
+            }
+        });
+
+        accumInspected += dailyInspectedQty;
+        accumStored += dailyStoresQty;
+
+        const newLogRef = rtdb.ref('inspection_logs').push();
+        await newLogRef.set({
+            userId: currentUser.uid,
+            userName: formattedUserName,
+            trimCategory: 'General',
+            poNumber,
+            articleDetails,
+            color,
+            checkType,
+            totalQty,
+            dailyInspectedQty,
+            dailyStoresQty,
+            accumInspected,
+            accumStored,
+            remainingQty: totalQty - accumInspected,
+            status,
+            receivedDate: receivedDate,
+            date: date,
+            loggedAt: firebase.database.ServerValue.TIMESTAMP
+        });
+    }
+
+    alert("✅ Inspection Entry Saved Successfully!");
+    e.target.reset();
+
+    const articleRows = document.getElementById('article-color-rows');
+    if (articleRows) {
+        articleRows.innerHTML = `
+            <div class="article-row">
+                <input type="text" class="item-article" placeholder="Article Specs">
+                <input type="text" class="item-color" placeholder="Color">
+                <input type="number" class="item-qty" placeholder="Qty">
+            </div>
+        `;
+    }
+    document.getElementById('receivedDate').value = todayStr;
+    toggleTrimCategoryFields();
+    toggleCheckTypeFields();
+    loadData();
+}
+
+// Update Status Handler
+function updateStatus(key, newStatus, recordOwnerId) {
+    if (currentUserRole !== 'admin' && currentUser.uid !== recordOwnerId) {
+        alert("🔒 Access Denied: You can only view this record. Only the user who created it can edit it.");
+        return;
+    }
+
+    const currentToday = new Date().toISOString().split('T')[0];
+
+    if (confirm(`Are you sure you want to change status to ${newStatus}?`)) {
+        rtdb.ref('inspection_logs/' + key).update({
+            status: newStatus,
+            date: currentToday // Inspection සිදු කළ දිනය සටහන් වේ
+        }).then(() => {
+            alert("✅ Status and Inspection Date Updated Successfully!");
+            loadData();
+        }).catch((err) => {
+            alert("❌ Update Failed: " + err.message);
+        });
+    }
+}
+
+// Load Data Function
+function loadData() {
+    const tbody20 = document.getElementById('tableBody20');
+    const tbody100 = document.getElementById('tableBody100');
+    const searchElem = document.getElementById('searchPO');
+    const searchQuery = searchElem ? searchElem.value.toLowerCase().trim() : '';
+
+    if (tbody20) tbody20.innerHTML = '<tr><td colspan="8" style="text-align:center;">Loading...</td></tr>';
+    if (tbody100) tbody100.innerHTML = '<tr><td colspan="12" style="text-align:center;">Loading...</td></tr>';
+
+    const selectedDate = document.getElementById('filterDate') ? document.getElementById('filterDate').value : '';
+    const headerDateElem = document.getElementById('pdf-date-header');
+    if (headerDateElem) headerDateElem.innerText = `Date: ${selectedDate}`;
+
+    rtdb.ref('inspection_logs').once('value').then((snapshot) => {
+        let html10 = '';
+        let html100 = '';
+
+        if (!snapshot.exists()) {
+            if (tbody20) tbody20.innerHTML = '<tr><td colspan="8" style="text-align:center;">No entries found.</td></tr>';
+            if (tbody100) tbody100.innerHTML = '<tr><td colspan="12" style="text-align:center;">No entries found.</td></tr>';
+            return;
+        }
+
+        snapshot.forEach((childSnap) => {
+            const key = childSnap.key;
+            const data = childSnap.val();
+
+            if (searchQuery === '') {
+                if (data.date !== selectedDate && data.receivedDate !== selectedDate) return;
+
+                if (currentUserRole !== 'admin' && data.userId !== currentUser.uid) {
+                    return; 
+                }
+            } else {
+                const poMatch = data.poNumber && data.poNumber.toLowerCase().includes(searchQuery);
+                const articleMatch = data.articleDetails && data.articleDetails.toLowerCase().includes(searchQuery);
+                const shadeMatch = data.shade && data.shade.toLowerCase().includes(searchQuery);
+                if (!poMatch && !articleMatch && !shadeMatch) return;
+            }
+
+            let badgeClass = 'badge-hold';
+            if (data.status === 'OK') badgeClass = 'badge-ok';
+            else if (data.status === 'REJECT') badgeClass = 'badge-reject';
+            else if (data.status === 'NON-CHECK') badgeClass = 'badge-role';
+
+            const isOwner = (currentUser && currentUser.uid === data.userId) || (currentUserRole === 'admin');
+
+            let statusCell = `<span class="badge ${badgeClass}">${data.status}</span>`;
+
+            if (data.status === 'HOLD' || data.status === 'NON-CHECK') {
+                if (isOwner) {
+                    statusCell += `
+                        <div class="no-print" style="margin-top:4px; display:flex; gap:2px;">
+                            <button onclick="updateStatus('${key}', 'OK', '${data.userId}')" style="background:#10b981; color:#fff; border:none; padding:2px 5px; font-size:10px; border-radius:3px; cursor:pointer;">OK</button>
+                            <button onclick="updateStatus('${key}', 'HOLD', '${data.userId}')" style="background:#f59e0b; color:#fff; border:none; padding:2px 5px; font-size:10px; border-radius:3px; cursor:pointer;">HOLD</button>
+                            <button onclick="updateStatus('${key}', 'REJECT', '${data.userId}')" style="background:#ef4444; color:#fff; border:none; padding:2px 5px; font-size:10px; border-radius:3px; cursor:pointer;">REJ</button>
+                        </div>
+                    `;
+                } else {
+                    statusCell += ` <small class="no-print" style="color:var(--text-muted); font-size:9px; display:block;">🔒 View Only</small>`;
+                }
+            }
+
+            const recDateDisp = data.receivedDate || data.date || '-';
+            const inspDateDisp = (data.status === 'NON-CHECK') ? 'Pending' : (data.date || '-');
+
+            if (data.checkType === '100%') {
+                html100 += `
+                    <tr>
+                        <td><strong>${data.poNumber || ''}</strong></td>
+                        <td><small>${recDateDisp}</small></td>
+                        <td><small>${inspDateDisp}</small></td>
+                        <td>${data.articleDetails || ''}</td>
+                        <td>${data.color || ''}</td>
+                        <td>${data.totalQty || 0}</td>
+                        <td>${data.dailyInspectedQty || 0}</td>
+                        <td style="color:#2563eb; font-weight:bold;">${data.accumInspected || 0}</td>
+                        <td style="color:#ef4444; font-weight:bold;">${(data.remainingQty < 0 || isNaN(data.remainingQty)) ? 0 : data.remainingQty}</td>
+                        <td>${data.dailyStoresQty || 0} (${data.accumStored || 0})</td>
+                        <td><small style="color:#64748b;">${data.userName || 'User'}</small></td>
+                        <td>${statusCell}</td>
+                    </tr>
+                `;
+            } else {
+                if (data.trimCategory === 'Thread') {
+                    html10 += `
+                        <tr>
+                            <td><strong>🧵 Thread</strong></td>
+                            <td><small>${recDateDisp}</small></td>
+                            <td><small>${inspDateDisp}</small></td>
+                            <td>Shade: ${data.shade || 'N/A'}</td>
+                            <td>Cone Qty: ${data.coneQty || 0}</td>
+                            <td>-</td>
+                            <td><small style="color:#64748b;">${data.userName || 'User'}</small></td>
+                            <td>${statusCell}</td>
+                        </tr>
+                    `;
+                } else {
+                    html10 += `
+                        <tr>
+                            <td><strong>${data.poNumber || ''}</strong></td>
+                            <td><small>${recDateDisp}</small></td>
+                            <td><small>${inspDateDisp}</small></td>
+                            <td>${data.articleDetails || ''}</td>
+                            <td>${data.color || ''}</td>
+                            <td>${data.totalQty || 0}</td>
+                            <td><small style="color:#64748b;">${data.userName || 'User'}</small></td>
+                            <td>${statusCell}</td>
+                        </tr>
+                    `;
+                }
+            }
+        });
+
+        if (tbody20) tbody20.innerHTML = html10 || '<tr><td colspan="8" style="text-align:center;">No 10% records found.</td></tr>';
+        if (tbody100) tbody100.innerHTML = html100 || '<tr><td colspan="12" style="text-align:center;">No 100% records found.</td></tr>';
+
+    }).catch((err) => {
+        console.error("Data Load Error:", err);
+        if (tbody20) tbody20.innerHTML = '<tr><td colspan="8" style="text-align:center; color:red;">Error loading data</td></tr>';
+        if (tbody100) tbody100.innerHTML = '<tr><td colspan="12" style="text-align:center; color:red;">Error loading data</td></tr>';
+    }); 
+}
+
