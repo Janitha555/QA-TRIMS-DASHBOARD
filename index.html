@@ -108,9 +108,9 @@
                     <h3 style="font-size: 14px; text-transform: uppercase; margin-bottom: 15px; border-left: 3px solid var(--accent, #3b82f6); padding-left: 8px;">Log Inspection Record</h3>
                     <form onsubmit="handleSaveRecord(event)">
                         
-                        <!-- 🆕 Received Date Field -->
+                        <!-- Received Date Field -->
                         <div class="form-group">
-                            <label>PO Received Date (පැමිණි දිනය)</label>
+                            <label>PO Received Date (භාණ්ඩ පැමිණි දිනය)</label>
                             <input type="date" id="receivedDate" required>
                         </div>
 
@@ -189,11 +189,11 @@
                             </div>
                         </div>
 
-                        <!-- 🆕 Inspection Status (NON-CHECK සමඟ) -->
+                        <!-- Inspection Status -->
                         <div class="form-group">
                             <label>Inspection Status</label>
                             <select id="status">
-                                <option value="NON-CHECK">NON-CHECK (භාණ්ඩ ලැබුණු පමනින්)</option>
+                                <option value="NON-CHECK">NON-CHECK (නොපරීක්ෂා කළ)</option>
                                 <option value="OK">OK</option>
                                 <option value="HOLD">HOLD</option>
                                 <option value="REJECT">REJECT</option>
@@ -226,8 +226,8 @@
                             <thead>
                                 <tr>
                                     <th>PO / Category</th>
-                                    <th>Rec. Date</th>
-                                    <th>Insp. Date</th>
+                                    <th>Received Date</th>
+                                    <th>Inspected Date</th>
                                     <th>Article / Shade</th>
                                     <th>Color / Cone Qty</th>
                                     <th>Batch Qty</th>
@@ -246,8 +246,8 @@
                             <thead>
                                 <tr>
                                     <th>PO Number</th>
-                                    <th>Rec. Date</th>
-                                    <th>Insp. Date</th>
+                                    <th>Received Date</th>
+                                    <th>Inspected Date</th>
                                     <th>Article Specs</th>
                                     <th>Color</th>
                                     <th>Full Qty</th>
