@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trims QA Enterprise Portal</title>
+    
+    <!-- Modern Typography Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
     <link rel="stylesheet" href="style.css">
     
     <!-- Firebase Compat SDKs -->
@@ -16,8 +22,8 @@
     <!-- Authentication Screen -->
     <div id="auth-screen">
         <div class="login-card">
-            <h2>Trims QA Portal</h2>
-            <p style="color: var(--text-muted, #64748b); font-size: 13px; margin-bottom: 20px;">Sign in to your account</p>
+            <h2 style="font-size: 20px; font-weight: 700; color: var(--primary);">Trims QA Portal</h2>
+            <p style="color: var(--text-muted); font-size: 12px; margin-top: 4px; margin-bottom: 24px;">Sign in to your account</p>
             <form id="login-form" onsubmit="handleLogin(event)">
                 <div class="form-group">
                     <label>Username / Email</label>
@@ -27,49 +33,51 @@
                     <label>Password</label>
                     <input type="password" id="login-password" required placeholder="••••••••">
                 </div>
-                <button type="submit" class="btn btn-primary" style="margin-top: 10px;">Sign In</button>
+                <button type="submit" class="btn btn-primary" style="margin-top: 12px;">Sign In</button>
             </form>
-            <div id="login-error" style="color: var(--danger, #ef4444); font-size: 12px; margin-top: 12px;"></div>
+            <div id="login-error" style="color: var(--danger); font-size: 12px; margin-top: 12px; font-weight: 600;"></div>
         </div>
     </div>
 
     <!-- Main Dashboard Screen -->
-    <div id="app-screen" style="display: none;">
+    <div id="app-screen">
         <div class="container">
             
+            <!-- Brand Banner Header -->
             <div class="brand-banner">
                 <img class="brand-logo" src="92806_2.jpg" alt="STAR - A Komar company">
             </div>
 
+            <!-- Floating Pill Navigation Bar -->
             <div class="navbar no-print">
-                <div style="font-size: 18px; font-weight: 600;">QA Operations Dashboard</div>
-                <div style="display: flex; align-items: center; gap: 15px;">
-                    <div class="user-nav-profile" style="display: flex; align-items: center; gap: 10px;">
-                        
+                <div style="font-size: 16px; font-weight: 700; letter-spacing: -0.2px;">QA Operations Dashboard</div>
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <div class="user-nav-profile">
                         <input type="file" id="avatar-file-input" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
                         
-                        <img id="nav-avatar" class="avatar" 
-                             src="https://ui-avatars.com/api/?name=User&background=random" 
-                             alt="Profile" 
-                             onclick="document.getElementById('avatar-file-input').click()" 
-                             style="cursor: pointer; width: 38px; height: 38px; border-radius: 50%; object-fit: cover;" 
-                             title="Click to upload Profile Picture">
+                        <div class="avatar-container">
+                            <img id="nav-avatar" class="avatar" 
+                                 src="https://ui-avatars.com/api/?name=User&background=random" 
+                                 alt="Profile" 
+                                 onclick="document.getElementById('avatar-file-input').click()" 
+                                 title="Click to upload Profile Picture">
+                        </div>
                         
                         <div>
-                            <span id="nav-username" style="font-size: 13px; font-weight: 600; display: block;">User</span>
-                            <span id="nav-role" style="font-size: 10px; color: #94a3b8; text-transform: uppercase;">Operator</span>
+                            <span id="nav-username" style="font-size: 13px; font-weight: 700; display: block; line-height: 1.2;">User</span>
+                            <span id="nav-role" class="badge badge-role" style="margin-top: 2px;">Operator</span>
                         </div>
                     </div>
-                    <button class="btn btn-danger" onclick="handleLogout()" style="padding: 6px 12px; font-size: 11px;">Logout</button>
+                    <button class="btn btn-danger" onclick="handleLogout()" style="height: 34px; padding: 0 14px; font-size: 11px;">Logout</button>
                 </div>
             </div>
 
-            <!-- Master Admin Controls -->
+            <!-- Master Admin Controls Panel -->
             <div id="master-admin-panel" class="admin-panel no-print" style="display: none;">
-                <h3 style="margin-bottom: 15px; color: var(--primary, #0f172a);">👑 Master Dashboard Control</h3>
+                <h3 style="margin-bottom: 16px; color: var(--primary); font-size: 15px; font-weight: 700;">👑 Master Dashboard Control</h3>
                 <div class="grid-2">
                     <div class="card">
-                        <h4 style="font-size: 13px; margin-bottom: 10px;">Register New Operator</h4>
+                        <h4 style="font-size: 13px; margin-bottom: 12px; font-weight: 700;">Register New Operator</h4>
                         <form onsubmit="handleCreateUser(event)">
                             <div class="form-group">
                                 <label>Operator Name</label>
@@ -83,29 +91,33 @@
                                 <label>Password</label>
                                 <input type="password" id="new-user-pass" required placeholder="••••••••">
                             </div>
-                            <button type="submit" class="btn btn-success">Register Operator</button>
+                            <button type="submit" class="btn btn-success" style="width: 100%;">Register Operator</button>
                         </form>
                     </div>
 
                     <div class="card">
-                        <h4 style="font-size: 13px; margin-bottom: 10px;">Filter PO Logs By Registered User</h4>
+                        <h4 style="font-size: 13px; margin-bottom: 12px; font-weight: 700;">Filter PO Logs By Registered User</h4>
                         <div class="form-group">
                             <select id="master-user-select" onchange="loadData()">
                                 <option value="ALL">Show All Users Data</option>
                             </select>
                         </div>
-                        <h4 style="font-size: 12px; margin-top: 15px;">Registered Users:</h4>
-                        <div style="max-height: 100px; overflow-y: auto; border: 1px solid var(--border, #e2e8f0); border-radius: 6px; padding: 5px;">
-                            <ul id="users-list" style="list-style: none; font-size: 12px;"></ul>
+                        <h4 style="font-size: 11px; margin-top: 16px; margin-bottom: 8px; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Registered Users:</h4>
+                        <div style="background: #f8fafc; border-radius: 12px; padding: 10px; border: 1px solid var(--border-soft);">
+                            <ul id="users-list"></ul>
                         </div>
                     </div>
                 </div>
             </div>
 
+            <!-- Main Workspace Grid -->
             <div class="grid-main">
-                <!-- Data Entry Form -->
+                
+                <!-- Data Entry Form Sidebar -->
                 <div class="card no-print">
-                    <h3 style="font-size: 14px; text-transform: uppercase; margin-bottom: 15px; border-left: 3px solid var(--accent, #3b82f6); padding-left: 8px;">Log Inspection Record</h3>
+                    <h3 style="font-size: 13px; text-transform: uppercase; margin-bottom: 16px; color: var(--primary); letter-spacing: 0.5px; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+                        📝 Log Inspection Record
+                    </h3>
                     <form onsubmit="handleSaveRecord(event)">
                         
                         <!-- Received Date Field -->
@@ -114,7 +126,7 @@
                             <input type="date" id="receivedDate" required>
                         </div>
 
-                        <!-- 1. Inspection Type -->
+                        <!-- Inspection Type -->
                         <div class="form-group">
                             <label>Inspection Type</label>
                             <select id="checkType" onchange="toggleCheckTypeFields()">
@@ -123,7 +135,7 @@
                             </select>
                         </div>
 
-                        <!-- 2. Trim Category Selection -->
+                        <!-- Trim Category Selection -->
                         <div class="form-group">
                             <label>Trim Category</label>
                             <select id="trimCategory" onchange="toggleTrimCategoryFields()">
@@ -132,28 +144,28 @@
                             </select>
                         </div>
 
-                        <!-- 3. General Trim PO Field -->
+                        <!-- General Trim PO Field -->
                         <div class="form-group" id="po-container">
                             <label>PO Number</label>
                             <input type="text" id="poNumber" placeholder="PO-XXXX">
                         </div>
 
-                        <!-- 4. Thread Specific Fields -->
-                        <div id="thread-fields" style="display: none; background: #f1f5f9; padding: 10px; border-radius: 6px; border: 1px dashed #64748b; margin-bottom: 12px;">
+                        <!-- Thread Specific Fields -->
+                        <div id="thread-fields" style="display: none; background: #f8fafc; padding: 12px; border-radius: 14px; border: 1px dashed var(--border); margin-bottom: 16px;">
                             <div class="form-group">
                                 <label>Shade</label>
                                 <input type="text" id="threadShade" placeholder="Enter Shade Name/Code">
                             </div>
-                            <div class="form-group">
+                            <div class="form-group" style="margin-bottom: 0;">
                                 <label>Inspected Cone Qty</label>
                                 <input type="number" id="threadConeQty" placeholder="Cone Quantity Checked">
                             </div>
                         </div>
 
                         <!-- Dynamic Multi Article/Color Section for 10% Inspection -->
-                        <div id="dynamic-article-container-10" style="margin-bottom: 12px;">
+                        <div id="dynamic-article-container-10" style="margin-bottom: 16px;">
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                                <label style="font-size:11px; font-weight:700; color:var(--primary-light, #334155);">ARTICLES & COLORS LIST (10%)</label>
+                                <label style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform: uppercase;">ARTICLES & COLORS (10%)</label>
                                 <button type="button" onclick="addArticleColorRow('10%')" class="btn-add-more">+ Add Row</button>
                             </div>
                             <div id="article-color-rows-10">
@@ -166,24 +178,24 @@
                         </div>
 
                         <!-- Dynamic Multi Article/Color Section for 100% Inspection -->
-                        <div id="dynamic-article-container-100" style="display: none; margin-bottom: 12px;">
+                        <div id="dynamic-article-container-100" style="display: none; margin-bottom: 16px;">
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                                <label style="font-size:11px; font-weight:700; color:var(--primary-light, #334155);">ARTICLES & QUANTITIES (100%)</label>
+                                <label style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform: uppercase;">ARTICLES & QUANTITIES (100%)</label>
                                 <button type="button" onclick="addArticleColorRow('100%')" class="btn-add-more">+ Add Row</button>
                             </div>
                             <div id="article-color-rows-100">
-                                <div class="article-row-100" style="display: flex; gap: 5px; margin-bottom: 8px;">
-                                    <input type="text" class="item-article-100" placeholder="Article Specs" style="flex:1;">
+                                <div class="article-row-100" style="display: flex; gap: 6px; margin-bottom: 8px;">
+                                    <input type="text" class="item-article-100" placeholder="Article" style="flex:1;">
                                     <input type="text" class="item-color-100" placeholder="Color" style="flex:1;">
-                                    <input type="number" class="item-fullqty-100" placeholder="Full Qty" style="flex:1;">
-                                    <input type="number" class="item-chkqty-100" placeholder="Checked" style="flex:1;">
-                                    <input type="number" class="item-storeqty-100" placeholder="Stores" style="flex:1;">
+                                    <input type="number" class="item-fullqty-100" placeholder="Full" style="flex:1;">
+                                    <input type="number" class="item-chkqty-100" placeholder="Chk" style="flex:1;">
+                                    <input type="number" class="item-storeqty-100" placeholder="Store" style="flex:1;">
                                 </div>
                             </div>
                         </div>
 
                         <!-- Inspection Status -->
-                        <div class="form-group">
+                        <div class="form-group" style="margin-bottom: 20px;">
                             <label>Inspection Status</label>
                             <select id="status">
                                 <option value="NON-CHECK">NON-CHECK</option>
@@ -197,24 +209,24 @@
                     </form>
                 </div>
 
-                <!-- Inspection Display Sheet & Search -->
-                <div class="print-area">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <!-- Inspection Display Sheet & Search Section -->
+                <div class="card print-area">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
                         <div>
-                            <h2 style="font-size: 18px;">TRIMS QUALITY ASSURANCE REPORT</h2>
-                            <p id="pdf-date-header" style="font-weight: bold; font-size: 13px; color: var(--text-muted, #64748b);"></p>
+                            <h2 style="font-size: 16px; font-weight: 700; color: var(--primary);">TRIMS QUALITY ASSURANCE REPORT</h2>
+                            <p id="pdf-date-header" style="font-weight: 600; font-size: 12px; color: var(--text-muted); margin-top: 2px;"></p>
                         </div>
                         
-                        <div class="no-print" style="display: flex; gap: 10px; align-items: center;">
-                            <input type="text" id="searchPO" onkeyup="loadData()" placeholder="🔍 Search PO / Article..." style="padding: 6px 10px; border-radius: 6px; border: 1px solid var(--accent, #3b82f6); font-size:12px; width:200px;">
-                            <input type="date" id="filterDate" onchange="loadData()" style="padding: 6px; border-radius: 6px; border: 1px solid var(--border, #cbd5e1);">
-                            <button class="btn btn-secondary" onclick="window.print()">Print PDF</button>
+                        <div class="no-print" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                            <input type="text" id="searchPO" onkeyup="loadData()" placeholder="🔍 Search PO / Article..." style="height: 38px; padding: 0 14px; border-radius: 50px; border: 1px solid var(--border-soft); background: #f8fafc; font-size:12px; width:180px;">
+                            <input type="date" id="filterDate" onchange="loadData()" style="height: 38px; padding: 0 10px; border-radius: 50px; border: 1px solid var(--border-soft); background: #f8fafc; font-size:12px;">
+                            <button class="btn btn-secondary" onclick="window.print()" style="height: 38px;">Print PDF</button>
                         </div>
                     </div>
 
                     <!-- 10% Table -->
                     <h4 class="table-title">📌 10% Inspection Summary Sheet</h4>
-                    <div class="table-responsive" style="margin-bottom: 25px;">
+                    <div class="table-responsive" style="margin-bottom: 24px;">
                         <table>
                             <thead>
                                 <tr>
@@ -257,6 +269,7 @@
                         </table>
                     </div>
                 </div>
+
             </div>
 
         </div>
@@ -267,4 +280,3 @@
     <script src="app.js"></script>
 </body>
 </html>
-
